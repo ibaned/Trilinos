@@ -502,6 +502,9 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
   const ModelEvaluatorBase::OutArgs<Scalar> &outArgs
   ) const
 {
+  std::cerr << "ModelEvaluatorBase<" << typeid(Scalar).name()
+    << ">::evalModel()\n";
+  std::cerr << "typeid(*this).name() = " << typeid(*this).name() << '\n';
 
   using Teuchos::outArg;
   typedef ModelEvaluatorBase MEB;
@@ -589,6 +592,7 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
       const Array<DefaultDerivMvAdjointSupport> &DgDp_default_mv_support_j =
         DgDp_default_mv_support_[j];
       for ( int l = 0; l < l_Np; ++l ) {
+        std::cerr << "DgDp(" << j << "," << l << ")\n";
         const DefaultDerivLinearOpSupport defaultLinearOpSupport =
           DgDp_default_op_support_j[l];
         const DefaultDerivMvAdjointSupport defaultMvAdjointSupport =
@@ -601,6 +605,7 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
           && !is_null(DgDp_j_l.getLinearOp())
           )
         {
+          std::cerr << "DgDp(" << j << "," << l << ") DefaultLinearOp\n";
           outArgsImpl.set_DgDp( j, l,
             getOutArgImplForDefaultLinearOpSupport(
               DgDp_j_l, defaultLinearOpSupport
@@ -612,6 +617,7 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
           && !is_null(DgDp_j_l.getMultiVector())
           )
         {
+          std::cerr << "DgDp(" << j << "," << l << ") DefaultAdjoint\n";
           const RCP<MultiVectorBase<Scalar> > DgDp_j_l_mv = 
             DgDp_j_l.getMultiVector();
           if (
@@ -620,6 +626,7 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
             DgDp_j_l.getMultiVectorOrientation()
             )
           {
+            std::cerr << "  orientation is different, tmp copy...\n";
             // The orientation of the multi-vector is different so we need to
             // create a temporary copy to pass to evalModelImpl(...) and then
             // copy it back again!
@@ -640,11 +647,13 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
               );
           }
           else {
+            std::cerr << "  already set, supported by evalModelImpl()\n";
             // The form of the multi-vector is supported by evalModelImpl(..)
             // and is already set on the outArgsImpl object.
           }
         }
         else {
+          std::cerr << "DgDp(" << j << "," << l << ") already set\n";
           // DgDp(j,l) already set by outArgsImpl.setArgs(...)!
         }
       }
@@ -682,6 +691,19 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
   // C) Evaluate the underlying model implementation!
   //
 
+  std::cerr << "C) evaluating underying model\n";
+  std::cerr << "outArgsImpl.description() = \n\""
+    << outArgsImpl.description() << "\"\n";
+  if (!outArgsImpl.supports(MEB::OUT_ARG_DgDp, 0, 0).none()) {
+    std::cerr << "outArgsImpl.get_DgDp(0,0).description() = \n";
+    std::cerr << outArgsImpl.get_DgDp(0,0).description() << '\n';
+  }
+//if (outArgsImpl.supports(MEB::OUT_ARG_f)) {
+//  std::cerr << "outArgsImpl.get_f()->range()->dim() = "
+//    << outArgsImpl.get_f()->range()->dim() << '\n';
+//}
+//std::cerr << "this->get_f_space()->dim() = " << this->get_f_space()->dim() << '\n';
+//std::cerr << "this->get_x_space()->dim() = " << this->get_x_space()->dim() << '\n';
   this->evalModelImpl( inArgs, outArgsImpl );
 
   //

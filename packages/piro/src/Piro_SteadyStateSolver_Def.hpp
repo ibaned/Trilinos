@@ -239,6 +239,9 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
     const Thyra::ModelEvaluatorBase::InArgs<Scalar>& modelInArgs,
     const Thyra::ModelEvaluatorBase::OutArgs<Scalar>& outArgs) const
 {
+  std::cerr << "Piro::SteadyStateSolver<" << typeid(Scalar).name()
+    << ">::evalConvergedModel()\n";
+  std::cerr << "typeid(*this).name() = " << typeid(*this).name() << '\n';
   using Teuchos::RCP;
   using Teuchos::rcp;
 
@@ -369,6 +372,8 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
     }
   }
 
+  std::cerr << "evaluating underlying model_\n";
+  std::cerr << "typeid(*model_).name() = " << typeid(*model_).name() << '\n';
   // Evaluate underlying model
   model_->evalModel(modelInArgs, modelOutArgs);
 
@@ -378,6 +383,7 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
       modelOutArgs.get_W();
     if (Teuchos::nonnull(jacobian)) {
       for (int l = 0; l < num_p_; ++l) {
+        std::cerr << "user-requested sensitivy #" << l << '\n';
         const Thyra::ModelEvaluatorBase::DerivativeSupport dfdp_support =
           modelOutArgs.supports(Thyra::ModelEvaluatorBase::OUT_ARG_DfDp, l);
         if (!dfdp_support.none()) {
@@ -393,6 +399,9 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
 
           const Thyra::ModelEvaluatorBase::Derivative<Scalar> dxdp_deriv =
             outArgs.get_DgDp(num_g_, l);
+          std::cerr << "dxdp_deriv = outArgs.get_DgDp("
+            << num_g_ << "," << l << ") =\n\""
+            << dxdp_deriv.description() << "\"\n";
           const RCP<Thyra::LinearOpBase<Scalar> > dxdp_op =
             dxdp_deriv.getLinearOp();
           const RCP<Thyra::MultiVectorBase<Scalar> > dxdp_mv =
@@ -401,11 +410,14 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
           RCP<const Thyra::LinearOpBase<Scalar> > minus_dxdp_op;
           RCP<Thyra::MultiVectorBase<Scalar> > minus_dxdp_mv;
           if (Teuchos::nonnull(dfdp_mv)) {
+            std::cerr << "Teuchos::nonnull(dfdp_mv)\n";
             if (Teuchos::nonnull(dxdp_mv)) {
+              std::cerr << "Teuchos::nonnull(dxdp_mv //user-provided object)\n";
               minus_dxdp_mv = dxdp_mv; // Use user-provided object as temporary
             } else {
               minus_dxdp_mv =
                 Thyra::createMembers(model_->get_x_space(), model_->get_p_space(l));
+              std::cerr << "minus_dxdp_mv = Thyra::createMembers(...)\n";
               minus_dxdp_op = minus_dxdp_mv;
             }
           }
@@ -420,6 +432,8 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
             Thyra::assign(minus_dxdp_mv.ptr(), Teuchos::ScalarTraits<Scalar>::zero());
 
             const Thyra::SolveCriteria<Scalar> defaultSolveCriteria;
+            std::cerr << "calling Thyra::solve with "
+              << "minus_dxdp_mv.range()->dim() = " << minus_dxdp_mv->range()->dim() << '\n';
             const Thyra::SolveStatus<Scalar> solveStatus =
               Thyra::solve(
                   *jacobian,

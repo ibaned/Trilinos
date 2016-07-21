@@ -548,6 +548,8 @@ AztecOOLinearOpWithSolve::solveImpl(
   const Ptr<const SolveCriteria<double> > solveCriteria
   ) const
 {
+  std::cerr << "AztecOOLinearOpWithSolve::solveImpl\n";
+  std::cerr << "X->range()->dim() = " << X->range()->dim() << '\n';
 
   using Teuchos::rcp;
   using Teuchos::rcpFromRef;
@@ -642,8 +644,10 @@ AztecOOLinearOpWithSolve::solveImpl(
    * might not yet have created an Epetra multivector. - KL */
   //const int m = epetra_B->NumVectors();
   const int m = B.domain()->dim();
+  std::cerr << "m = " << m << '\n';
 
   for( int j = 0; j < m; ++j ) {
+    std::cerr << "j = " << j << '\n';
 
     THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: AztecOOLOWS:SingleSolve", SingleSolve);
 
@@ -663,7 +667,9 @@ AztecOOLinearOpWithSolve::solveImpl(
       epetra_x_j = rcpFromRef(*(*epetra_X)(j));
     }
     else {
+      std::cerr << "opWrapper != 0\n";
       if (is_null(epetra_b_j)) {
+        std::cerr << "is_null(epetra_b_j)\n";
         epetra_b_j = rcp(new Epetra_Vector(opRangeMap));
         epetra_x_j = rcp(new Epetra_Vector(opDomainMap));
       }

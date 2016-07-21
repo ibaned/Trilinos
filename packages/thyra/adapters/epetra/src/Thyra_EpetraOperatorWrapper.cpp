@@ -132,6 +132,7 @@ void EpetraOperatorWrapper::copyThyraIntoEpetra(
   const RCP<const ProductVectorBase<double> > prodThyraVec =
     castOrCreateProductVectorBase(rcpFromRef(thyraVec));
 
+  auto nelems = x.Map().NumMyElements();
   const ArrayView<double> epetraData(x[0], x.Map().NumMyElements());
   // NOTE: See above!
 
@@ -145,6 +146,16 @@ void EpetraOperatorWrapper::copyThyraIntoEpetra(
     const ArrayRCP<const double> thyraData = view.sv().values();
     const int localNumElems = spmd_vs_b->localSubDim();
     for (int i=0; i < localNumElems; ++i) {
+      if (i + offset >= nelems) {
+        std::cerr << "(i=" << i << ")+(offset=" << offset << ") >= (nelems="
+          << nelems << ")\n";
+        std::cerr << "thyraData.size()=" << thyraData.size() << '\n';
+        std::cerr << "numBlocks=" << numBlocks << '\n';
+        std::cerr << "localNumElems=" << localNumElems << '\n';
+        std::cerr << "vec_b->range()->dim()=" << vec_b->range()->dim() << '\n';
+        std::cerr << "thyraVec.range()->dim()=" << thyraVec.range()->dim() << '\n';
+        assert(0);
+      }
       epetraData[i+offset] = thyraData[i];
     }
     offset += localNumElems;

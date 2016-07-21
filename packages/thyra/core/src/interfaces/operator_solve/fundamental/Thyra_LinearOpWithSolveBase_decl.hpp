@@ -453,7 +453,10 @@ public:
     const Ptr<MultiVectorBase<Scalar> > &X,
     const Ptr<const SolveCriteria<Scalar> > solveCriteria = Teuchos::null
     ) const 
-    { return solveImpl(A_trans, B, X, solveCriteria); }
+    {
+      std::cerr << "LinearOpWithSolveBase::solve()\n";
+      std::cerr << "X->range()->dim() = " << X->range()->dim() << '\n';
+      return solveImpl(A_trans, B, X, solveCriteria); }
 
   //@}
 
@@ -558,6 +561,9 @@ SolveStatus<Scalar> solve(
   const Ptr<const SolveCriteria<Scalar> > solveCriteria = Teuchos::null
   )
 {
+  std::cerr << "Thyra::solve<" << typeid(Scalar).name() << ">()\n";
+  std::cerr << "B.range()->dim() = " << B.range()->dim() << '\n';
+  std::cerr << "X->range()->dim() = " << X->range()->dim() << '\n';
   return A.solve(A_trans, B, X, solveCriteria);
 }
 
