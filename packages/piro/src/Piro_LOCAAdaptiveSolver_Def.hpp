@@ -131,8 +131,11 @@ Piro::LOCAAdaptiveSolver<Scalar>::evalModelImpl(
     const Thyra::ModelEvaluatorBase::InArgs<Scalar>& inArgs,
     const Thyra::ModelEvaluatorBase::OutArgs<Scalar>& outArgs) const
 {
+  std::cerr << "Piro::LOCAAdaptiveSolver<" << typeid(Scalar).name()
+    << ">::evalModelImpl()\n";
   const int l = 0; // TODO: Allow user to select parameter index
   const Teuchos::RCP<const Thyra::VectorBase<Scalar> > p_inargs = inArgs.get_p(l);
+//std::cerr << "p_inargs->range()->dim() = " << p_inargs->range()->dim() << '\n';
 
   // Forward parameter values to the LOCAAdaptive stepper
   {
@@ -226,6 +229,7 @@ Piro::LOCAAdaptiveSolver<Scalar>::evalModelImpl(
 
   // If the arrays need resizing
   if(x_args_dim < f_sol_dim){
+    std::cerr << "x_args_dim < f_sol_dim\n";
 
     const int parameterCount = this->Np();
 
@@ -235,6 +239,7 @@ Piro::LOCAAdaptiveSolver<Scalar>::evalModelImpl(
       const Thyra::ModelEvaluatorBase::EDerivativeMultiVectorOrientation dgdp_orient =
         Thyra::ModelEvaluatorBase::DERIV_MV_JACOBIAN_FORM;
       if (dgdp_support.supports(dgdp_orient)) {
+        std::cerr << "pc = " << pc << ", dgdp_support.supports(dgdp_orient)\n";
         const Thyra::ModelEvaluatorBase::DerivativeMultiVector<Scalar> dgdp =
           Thyra::create_DgDp_mv(*this, this->num_g(), pc, dgdp_orient);
         mutable_outArgsPtr->set_DgDp(this->num_g(), pc, dgdp);
@@ -248,9 +253,12 @@ Piro::LOCAAdaptiveSolver<Scalar>::evalModelImpl(
       this->getModel().createInArgs();
     {
       modelInArgs.set_x(x_final);
+      std::cerr << "modelInArgs.set_x(x_final)\n";
+      std::cerr << "x_final->range()->dim() = " << x_final->range()->dim() << '\n';
       modelInArgs.set_p(l, p_inargs);
     }
 
+    std::cerr << "calling this->evalConvergedModel\n";
     this->evalConvergedModel(modelInArgs, outArgs);
 
     // Save the final solution TODO: this needs to be redone

@@ -245,6 +245,11 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
   using Teuchos::RCP;
   using Teuchos::rcp;
 
+  if (!outArgs.supports(Thyra::ModelEvaluatorBase::OUT_ARG_DgDp, 0, 0).none()) {
+    std::cerr << "outArgs.getDgDp(0,0).description() =\n";
+    std::cerr << outArgs.get_DgDp(0,0).description() << '\n';
+  }
+
   //int g_size = 0;  // Commenting out since g_size is not used.
   // Solution at convergence is the response at index num_g_
   {
