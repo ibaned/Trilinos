@@ -274,6 +274,7 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
           const Thyra::ModelEvaluatorBase::DerivativeSupport dgdp_support =
             outArgs.supports(Thyra::ModelEvaluatorBase::OUT_ARG_DgDp, j, l);
           if (!dgdp_support.none()) {
+            std::cerr << "!dgdp_support.none() (j=" << j << ",l=" << l << ")\n";
             const Thyra::ModelEvaluatorBase::Derivative<Scalar> dgdp_deriv =
               outArgs.get_DgDp(j, l);
             if (!dgdp_deriv.isEmpty()) {
@@ -282,9 +283,12 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
           }
         }
       }
+      std::cerr << "jacobian is required, model_->create_W()\n";
       if (jacobianRequired) {
         const RCP<Thyra::LinearOpWithSolveBase<Scalar> > jacobian =
           model_->create_W();
+      //std::cerr << "jacobian->domain()->dim() = " << jacobian->domain()->dim() << '\n';
+      //std::cerr << "jacobian->range()->dim() = " << jacobian->range()->dim() << '\n';
         modelOutArgs.set_W(jacobian);
       }
     }
@@ -388,6 +392,9 @@ void Piro::SteadyStateSolver<Scalar>::evalConvergedModel(
   if (modelOutArgs.supports(Thyra::ModelEvaluatorBase::OUT_ARG_W)) {
     const RCP<Thyra::LinearOpWithSolveBase<Scalar> > jacobian =
       modelOutArgs.get_W();
+    std::cerr << "jacobian = modelOutArgs.get_W()\n";
+  //std::cerr << "jacobian->domain()->dim() = " << jacobian->domain()->dim() << '\n';
+  //std::cerr << "jacobian->range()->dim() = " << jacobian->range()->dim() << '\n';
     if (Teuchos::nonnull(jacobian)) {
       for (int l = 0; l < num_p_; ++l) {
         std::cerr << "user-requested sensitivity #" << l << '\n';
