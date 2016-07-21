@@ -691,13 +691,13 @@ void ModelEvaluatorDefaultBase<Scalar>::evalModel(
   // C) Evaluate the underlying model implementation!
   //
 
-  std::cerr << "C) evaluating underying model\n";
-  std::cerr << "outArgsImpl.description() = \n\""
-    << outArgsImpl.description() << "\"\n";
-  if (!outArgsImpl.supports(MEB::OUT_ARG_DgDp, 0, 0).none()) {
-    std::cerr << "outArgsImpl.get_DgDp(0,0).description() = \n";
-    std::cerr << outArgsImpl.get_DgDp(0,0).description() << '\n';
-  }
+  std::cerr << "C) evaluating underying model (this->evalModelImpl)\n";
+//std::cerr << "outArgsImpl.description() = \n\""
+//  << outArgsImpl.description() << "\"\n";
+//if (!outArgsImpl.supports(MEB::OUT_ARG_DgDp, 0, 0).none()) {
+//  std::cerr << "outArgsImpl.get_DgDp(0,0).description() = \n";
+//  std::cerr << outArgsImpl.get_DgDp(0,0).description() << '\n';
+//}
 //if (outArgsImpl.supports(MEB::OUT_ARG_f)) {
 //  std::cerr << "outArgsImpl.get_f()->range()->dim() = "
 //    << outArgsImpl.get_f()->range()->dim() << '\n';
