@@ -142,10 +142,8 @@ checkStatus(const NOX::Solver::Generic& problem,
 
   // Create the working vectors if this is the first time this
   // operator is called.
-  if (Teuchos::is_null(u))
-    u = x.clone(NOX::ShapeCopy);
-  if (Teuchos::is_null(v))
-    v = x.clone(NOX::ShapeCopy);
+  u = x.clone(NOX::ShapeCopy);
+  v = x.clone(NOX::ShapeCopy);
 
   // Create the weighting vector u = RTOL |x| + ATOL
   // |x| is evaluated at the old time step
