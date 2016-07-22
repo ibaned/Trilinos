@@ -57,10 +57,20 @@ Thyra::AdaptiveSolutionManager::AdaptiveSolutionManager() :
 }
 
 void
+Thyra::AdaptiveSolutionManager::
+initialize(const Teuchos::RCP<Thyra::AdaptiveStateBase>& state){
+  std::cerr << "Thyra::AdaptiveStateBase::initialize\n";
+  base = state;
+}
+
+void
 Thyra::LOCAAdaptiveState::
 buildSolutionGroup() {
+  std::cerr << "Thyra::LOCAAdaptiveState::buildSolutionGroup()\n";
+  std::cerr << "initialGuess(*(model_->getNomialValues().get_x()))\n";
+  std::cerr << "typeid(*model_).name() = " << typeid(*model_).name() << '\n';
 
-  const NOX::Thyra::Vector initialGuess(*model_->getNominalValues().get_x());
+  const NOX::Thyra::Vector initialGuess(*(model_->getNominalValues().get_x()));
 
   grp_ = Teuchos::rcp(new LOCA::Thyra::GroupWrapper(globalData_, initialGuess, model_, *paramVector_, p_index_));
   grp_->setSaveDataStrategy(saveDataStrategy_);

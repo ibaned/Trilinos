@@ -122,9 +122,7 @@ public:
 
   virtual ~AdaptiveSolutionManager () {}
 
-  void initialize(const Teuchos::RCP<Thyra::AdaptiveStateBase>& state){
-        base = state;
-  }
+  void initialize(const Teuchos::RCP<Thyra::AdaptiveStateBase>& state);
 
   Teuchos::RCP<Thyra::AdaptiveStateBase> getState(){ return base; }
 

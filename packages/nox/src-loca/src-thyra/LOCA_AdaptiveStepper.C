@@ -524,6 +524,7 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
 // The new solution group is created by the solution manager, using the new adapted discretization
 // Get a pointer to it
 
+  std::cerr << "newSolnGroup = mgr->getState()->getSolutionGroup()\n";
   Teuchos::RCP<LOCA::MultiContinuation::AbstractGroup> newSolnGroup = 
         Teuchos::rcp_dynamic_cast< ::Thyra::LOCAAdaptiveState >(mgr->getState())->getSolutionGroup();
 
@@ -533,6 +534,7 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
 
 // Re-build the solution group at the larger size needed for the adapted mesh
 
+  std::cerr << "setSolutionGroup(newSolnGroup, " << value << ")\n";
   setSolutionGroup(newSolnGroup, value);
 
 /*
@@ -547,20 +549,20 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
   const bool equilibrate = mgr->getAdaptParamsNonConst()->get<bool>("Equilibrate", true);
 
   if (equilibrate) {
-// GAH begin equilibration
-  printRelaxationStep();
+    // GAH begin equilibration
+    printRelaxationStep();
 
-  // Perform solve of newSolnGroup conditions - this is the "relaxation" (equilibration) solve
-  solverStatus = solverPtr->solve();
+    // Perform solve of newSolnGroup conditions - this is the "relaxation" (equilibration) solve
+    solverStatus = solverPtr->solve();
 
-  // Compute eigenvalues/eigenvectors if requested
-  if (calcEigenvalues) computeEigenData();
+    // Compute eigenvalues/eigenvectors if requested
+    if (calcEigenvalues) computeEigenData();
 
-  // Allow continuation group to postprocess the step
-  if (solverStatus == NOX::StatusTest::Converged)
-    curGroupPtr->postProcessContinuationStep(LOCA::Abstract::Iterator::Successful);
-  else
-    curGroupPtr->postProcessContinuationStep(LOCA::Abstract::Iterator::Unsuccessful);
+    // Allow continuation group to postprocess the step
+    if (solverStatus == NOX::StatusTest::Converged)
+      curGroupPtr->postProcessContinuationStep(LOCA::Abstract::Iterator::Successful);
+    else
+      curGroupPtr->postProcessContinuationStep(LOCA::Abstract::Iterator::Unsuccessful);
   } else {
     solverStatus = NOX::StatusTest::Converged;
   }
@@ -573,6 +575,7 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
     = Teuchos::rcp_const_cast<LOCA::MultiContinuation::AbstractGroup>(constSolnGrp.getUnderlyingGroup());
 
   // Create continuation strategy
+  std::cerr << "curGroupPtr = globalData->locaFactory->createContinuationStrategy(...)\n";
   curGroupPtr = globalData->locaFactory->createContinuationStrategy(
                             parsedParams,
                             stepperList,
@@ -581,14 +584,15 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
                             conParamIDs);
 
   if (equilibrate) {
-  // Do printing (relaxation case) after continuation group set up
-  // GAH end equilibration
-  if (solverStatus == NOX::StatusTest::Failed)
-    printRelaxationEndStep(LOCA::Abstract::Iterator::Unsuccessful);
-  else
-    printRelaxationEndStep(LOCA::Abstract::Iterator::Successful);
+    // Do printing (relaxation case) after continuation group set up
+    // GAH end equilibration
+    if (solverStatus == NOX::StatusTest::Failed)
+      printRelaxationEndStep(LOCA::Abstract::Iterator::Unsuccessful);
+    else
+      printRelaxationEndStep(LOCA::Abstract::Iterator::Successful);
   }
 
+  std::cerr << "prevGroupPtr = curGroupPtr->clone()\n";
   prevGroupPtr =
     Teuchos::rcp_dynamic_cast<LOCA::MultiContinuation::AbstractStrategy>(curGroupPtr->clone());
 
@@ -616,23 +620,27 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
 
   // We have successfully relaxed the solution from the remesh, now prepare to resume stepping
 
- // Compute predictor direction
+  // Compute predictor direction
+  std::cerr << "curGroupPtr->computePredictor()\n";
   NOX::Abstract::Group::ReturnType predictorStatus =
     curGroupPtr->computePredictor();
 
   globalData->locaErrorCheck->checkReturnType(predictorStatus,
                           callingFunction);
 
+  std::cerr << "curPredictorPtr = curGroupPtr->getPredictorTangent()[0].clone(NOX::DeepCopy)\n";
   curPredictorPtr =
     Teuchos::rcp_dynamic_cast<LOCA::MultiContinuation::ExtendedVector>(
       curGroupPtr->getPredictorTangent()[0].clone(NOX::DeepCopy));
 
+  std::cerr << "prevPredictorPtr = curGroupPtr->getPredictorTangent()[0].clone(NOX::ShapeCopy)\n";
   prevPredictorPtr =
     Teuchos::rcp_dynamic_cast<LOCA::MultiContinuation::ExtendedVector>(
       curGroupPtr->getPredictorTangent()[0].clone(NOX::ShapeCopy));
 
-   // Save previous successful step information
-    prevGroupPtr->copy(*curGroupPtr);
+  // Save previous successful step information
+  std::cerr << "prevGroupPtr->copy(*curGroupPtr)\n";
+  prevGroupPtr->copy(*curGroupPtr);
 
   // Compute step size
   stepStatus = computeStepSize(stepStatus, stepSize);
@@ -641,15 +649,18 @@ LOCA::AdaptiveStepper::adapt(LOCA::Abstract::Iterator::StepStatus stepStatus)
   curGroupPtr->setStepSize(stepSize);
 
   // Set previous solution vector in current solution group
+  std::cerr << "curGroupPtr->setPrevX(prevGroupPtr->getX())\n";
   curGroupPtr->setPrevX(prevGroupPtr->getX());
 
   // Take step in predictor direction
+  std::cerr << "curGroupPtr->computeX(...)\n";
   curGroupPtr->computeX(*prevGroupPtr, *curPredictorPtr, stepSize);
 
   // Allow continuation group to preprocess the step
   curGroupPtr->preProcessContinuationStep(stepStatus);
 
   // Reset solver to compute new solution
+  std::cerr << "solverPtr = buildSolver(curGroupPtr)\n";
   solverPtr = NOX::Solver::buildSolver(curGroupPtr, noxStatusTestPtr,
                        parsedParams->getSublist("NOX"));
 
@@ -700,6 +711,7 @@ LOCA::AdaptiveStepper::preprocess(LOCA::Abstract::Iterator::StepStatus stepStatu
 LOCA::Abstract::Iterator::IteratorStatus
 LOCA::AdaptiveStepper::run()
 {
+  std::cerr << "LOCA::AdaptiveStepper::run()\n";
   // We return one of two successful states to Piro:
   //   LOCA::Abstract::Iterator::Finished || LOCA::Abstract::Iterator::NotFinished
   // Anything else indicates a fatal error and we are giving up
@@ -712,12 +724,16 @@ LOCA::AdaptiveStepper::run()
     return LOCA::Abstract::Iterator::Failed;
 
   stepNumber++;
+  std::cerr << "stepNumber++ = " << stepNumber << '\n';
   mgr->setIteration(stepNumber);
+  std::cerr << "mgr->setTime(" << getContinuationParameter() << " = getContinuationParameter())\n";
   mgr->setTime(getContinuationParameter());
 
+  std::cerr << "iteratorStatus = iterate()\n";
   iteratorStatus = iterate();
 
   if (iteratorStatus == LOCA::Abstract::Iterator::Failed){
+    std::cerr << "iteratorStatus == LOCA::Abstract::Iterator::Failed\n";
     if(max_steps_exceeded){
       // not a true failure, the last iteration converged but we exceeded the maximum iterations specified by the user
       max_steps_exceeded = false;
@@ -728,11 +744,13 @@ LOCA::AdaptiveStepper::run()
       return LOCA::Abstract::Iterator::Failed;
   }
   else if(iteratorStatus == LOCA::Abstract::Iterator::Finished){
+      std::cerr << "iteratorStatus == LOCA::Abstract::Iterator::Finished\n";
       max_steps_exceeded = false;
       return LOCA::Abstract::Iterator::Finished;
   }
 
 // This should only be called if the last Newton solve was successful but the status is NotFinished
+  std::cerr << "Newton was successful but the status is NotFinished\n";
   iteratorStatus = finish(iteratorStatus);
 
   return iteratorStatus;
@@ -742,13 +760,16 @@ LOCA::AdaptiveStepper::run()
 LOCA::Abstract::Iterator::IteratorStatus
 LOCA::AdaptiveStepper::iterate()
 {
+  std::cerr << "LOCA::AdaptiveStepper::iterate()\n";
 
+  std::cerr << "stepStatus = Successful\n";
   LOCA::Abstract::Iterator::StepStatus stepStatus =
     LOCA::Abstract::Iterator::Successful;
   LOCA::Abstract::Iterator::StepStatus preStatus;
   LOCA::Abstract::Iterator::StepStatus compStatus;
   LOCA::Abstract::Iterator::StepStatus postStatus;
 
+  std::cerr << "iteratorStatus = stop(stepStatus)\n";
   iteratorStatus = stop(stepStatus);
 
   // Loop until we finish the LOCA stepping trajectory, or get stuck and cannot recover.
@@ -756,6 +777,14 @@ LOCA::AdaptiveStepper::iterate()
   bool lastStepFailed = false;
 
   while (iteratorStatus == LOCA::Abstract::Iterator::NotFinished) {
+    std::cerr << "iteratorStatus == LOCA::Abstract::Iterator::NotFinished\n";
+
+    bool a = mgr->isAdaptive();
+    bool b = stepStatus != LOCA::Abstract::Iterator::Unsuccessful;
+    bool c = mgr->queryAdaptationCriteria();
+    bool d = !lastStepFailed;
+
+    std::cerr << "adapt checks: " << a<<", "<<b<<", "<<c<<", "<<d<<'\n';
 
     // Adapt the mesh and move forward
     if(mgr->isAdaptive()
@@ -763,43 +792,54 @@ LOCA::AdaptiveStepper::iterate()
       && mgr->queryAdaptationCriteria() && !lastStepFailed) {
 
       // Adapt the mesh and problem size
-      if(!mgr->adaptProblem())
-
+      std::cerr << "calling mgr->adaptProblem()\n";
+      if(!mgr->adaptProblem()) {
+        std::cerr << "mgr->adaptProblem() failed\n";
         return LOCA::Abstract::Iterator::Failed; // Abort if mesh manipulation fails - this is Fatal
+      }
 
       // Project (remap the physics) and relax the solution on the new mesh
 
+      std::cerr << "preStatus = adapt(stepStatus)\n";
       preStatus = adapt(stepStatus);
 
       // Abort if this fails
 
-      if(preStatus == LOCA::Abstract::Iterator::Unsuccessful)
-
+      if(preStatus == LOCA::Abstract::Iterator::Unsuccessful) {
+        std::cerr << "preStatus == LOCA::Abstract::Iterator::Unsuccessful\n";
         // Bail out if the projection cannot be done
         return LOCA::Abstract::Iterator::Failed;
+      }
 
     }
     else { // do not adapt the mesh
 
+      std::cerr << "skip adaptation and go directly here if the nonlinear solver just failed\n";
       // We skip adaptation and go directly here if the nonlinear solver just failed
       preStatus = preprocess(stepStatus);
 
     }
 
+    std::cerr << "compStatus = compute(preStatus)\n";
     compStatus = compute(preStatus);
 
+    std::cerr << "postStatus = postprocess(compStatus)\n";
     postStatus = postprocess(compStatus);
 
+    std::cerr << "stepStatus = computeStepStatus(preStatus, compStatus, postStatus)\n";
     stepStatus = computeStepStatus(preStatus, compStatus, postStatus);
 
     ++numTotalSteps;
+    std::cerr << "++numTotalSteps = " << numTotalSteps << '\n';
 
     if (stepStatus ==  LOCA::Abstract::Iterator::Successful){
+      std::cerr << "we sucessfully stepped, increment the step number\n";
       // we sucessfully stepped, increment the step number
       ++stepNumber;
       lastStepFailed = false;
     }
     else {
+      std::cerr << "we didn't (sucessfully step), increment the failed step number\n";
       // we didn't, increment the failed step number
       ++numFailedSteps;
       lastStepFailed = true;
@@ -808,13 +848,19 @@ LOCA::AdaptiveStepper::iterate()
     }
 
     mgr->setIteration(stepNumber);
+    std::cerr << "mgr->setIteration(" << stepNumber << ")\n";
     mgr->setTime(getContinuationParameter());
+    std::cerr << "mgr->setTime(" << getContinuationParameter() << ")\n";
 
-    if (iteratorStatus != LOCA::Abstract::Iterator::Failed)
+    if (iteratorStatus != LOCA::Abstract::Iterator::Failed) {
+      std::cerr << "iteratorStatus != LOCA::Abstract::Iterator::Failed\n";
+      std::cerr << "iteratorStatus = stop(stepStatus)\n";
       iteratorStatus = stop(stepStatus);
+    }
 
   }
 
+  std::cerr << "return iteratorStatus\n";
   return iteratorStatus;
 }
 
