@@ -74,12 +74,14 @@ LineSearchBased(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
   paramsPtr(p),
   prePostOperator(utilsPtr, paramsPtr->sublist("Solver Options"))
 {
+  std::cerr << "LineSearchBased ctor\n";
   init();
 }
 
 // Protected
 void NOX::Solver::LineSearchBased::init()
 {
+  std::cerr << "LineSearchBased::init()\n";
   // Initialize
   stepSize = 0.0;
   nIter = 0;
@@ -106,6 +108,7 @@ void NOX::Solver::LineSearchBased::
 reset(const NOX::Abstract::Vector& initialGuess,
       const Teuchos::RCP<NOX::StatusTest::Generic>& t)
 {
+  std::cerr << "LineSearchBased::reset(guess, test)\n";
   solnPtr->setX(initialGuess);
   testPtr = t;
   init();
@@ -114,6 +117,7 @@ reset(const NOX::Abstract::Vector& initialGuess,
 void NOX::Solver::LineSearchBased::
 reset(const NOX::Abstract::Vector& initialGuess)
 {
+  std::cerr << "LineSearchBased::reset(guess)\n";
   solnPtr->setX(initialGuess);
   init();
 }
@@ -185,6 +189,7 @@ NOX::StatusTest::StatusType NOX::Solver::LineSearchBased::step()
   nIter ++;
 
   // Copy current soln to the old soln.
+  std::cerr << "Copy current soln to the old soln.\n";
   *oldSolnPtr = *solnPtr;
 
   // Do line search and compute new soln.
@@ -250,6 +255,7 @@ NOX::Solver::LineSearchBased::getSolutionGroup() const
 const NOX::Abstract::Group&
 NOX::Solver::LineSearchBased::getPreviousSolutionGroup() const
 {
+  std::cerr << "NOX::Solver::LineSearchBased::getPreviousSolutionGroup\n";
   return *oldSolnPtr;
 }
 
