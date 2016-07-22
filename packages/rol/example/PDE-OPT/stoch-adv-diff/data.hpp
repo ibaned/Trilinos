@@ -46,8 +46,8 @@
            all mesh and discretization data, matrices, etc.
 */
 
-#ifndef ROL_PDEOPT_POISSON_DATA_H
-#define ROL_PDEOPT_POISSON_DATA_H
+#ifndef ROL_PDEOPT_STOCH_ADV_DIFF_DATA_H
+#define ROL_PDEOPT_STOCH_ADV_DIFF_DATA_H
 
 #include "Teuchos_GlobalMPISession.hpp"
 #include "Teuchos_TimeMonitor.hpp"
@@ -83,7 +83,6 @@ private:
   int myRank_;
   int numProcs_;
 
-  Real alpha_;
   int  basisOrder_;
 
   Teuchos::RCP<const Tpetra::Map<> >    myOverlapMap_;
@@ -93,14 +92,21 @@ private:
   Teuchos::RCP<Tpetra::CrsMatrix<> >    matA_dirichlet_;
   Teuchos::RCP<Tpetra::CrsMatrix<> >    matA_dirichlet_trans_;
   Teuchos::RCP<Tpetra::CrsMatrix<> >    matM_;
-  Teuchos::RCP<Tpetra::CrsMatrix<> >    matM_dirichlet_;
-  Teuchos::RCP<Tpetra::CrsMatrix<> >    matM_dirichlet_trans_;
+//  Teuchos::RCP<Tpetra::CrsMatrix<> >    matB_;
+//  Teuchos::RCP<Tpetra::CrsMatrix<> >    matB_dirichlet_;
+//  Teuchos::RCP<Tpetra::CrsMatrix<> >    matB_dirichlet_trans_;
   Teuchos::RCP<Tpetra::MultiVector<> >  vecUd_;
   Teuchos::RCP<Tpetra::MultiVector<> >  vecF_;
   Teuchos::RCP<Tpetra::MultiVector<> >  vecF_overlap_;
   Teuchos::RCP<Tpetra::MultiVector<> >  vecF_dirichlet_;
+  Teuchos::RCP<Tpetra::MultiVector<> >  vecWeights_;
+
+  Teuchos::RCP<Tpetra::MultiVector<> > matB_;
+  Teuchos::RCP<Tpetra::MultiVector<> > matB_dirichlet_;
+  Teuchos::RCP<Tpetra::MultiVector<> > matB_overlap_;
 
   Teuchos::Array<int> myCellIds_;
+  Teuchos::Array<int> myDirichletDofs_;
 
   Teuchos::RCP<Amesos2::Solver< Tpetra::CrsMatrix<>, Tpetra::MultiVector<> > > solverA_;
   Teuchos::RCP<Amesos2::Solver< Tpetra::CrsMatrix<>, Tpetra::MultiVector<> > > solverA_trans_;
@@ -125,22 +131,36 @@ private:
   Teuchos::RCP<Intrepid::FieldContainer<Real> > gradReference_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > valPhysical_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > gradPhysical_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > kappaGradPhysical_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > advGradPhysical_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > funcValPhysical_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > valPhysicalWeighted_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > gradPhysicalWeighted_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > gradgradMats_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > valvalMats_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > valfuncvalMats_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > advgradvalMats_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > pdeMats_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > cubPointsPhysical_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > kappa_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > cfunc_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > adv_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > dataF_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > datavalVecF_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > dofPoints_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > dofPointsPhysical_;
   Teuchos::RCP<Intrepid::FieldContainer<Real> > dataUd_;
 
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > dataB_;
+  Teuchos::RCP<Intrepid::FieldContainer<Real> > datavalB_;
+  std::vector<Intrepid::FieldContainer<Real> > vectorDataValB_;
+
 public:
 
   PoissonData(const Teuchos::RCP<const Teuchos::Comm<int> > &comm,
               const Teuchos::RCP<Teuchos::ParameterList> &parlist,
               const Teuchos::RCP<std::ostream> &outStream) {
+    std::vector<Real> param(37,1);
 
     /************************************/
     /*** Retrieve communication data. ***/
@@ -155,7 +175,6 @@ public:
     /*************************************/
     /*** Retrieve parameter list data. ***/
     /*************************************/
-    alpha_ = parlist->sublist("Problem").get("Control penalty parameter", 1e-2);
     basisOrder_ = parlist->sublist("Problem").get("Order of FE discretization", 1);
     int cellSplit = parlist->sublist("Geometry").get("Partition type", 1);
     /*************************************/
@@ -287,13 +306,25 @@ public:
     gradReference_        = Teuchos::rcp(new Intrepid::FieldContainer<Real>(lfs, numCubPoints_, spaceDim_));  
     valPhysical_          = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_));
     gradPhysical_         = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_, spaceDim_));
+    kappaGradPhysical_    = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_, spaceDim_));
+    advGradPhysical_      = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_));
     valPhysicalWeighted_  = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_));
+    funcValPhysical_      = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_));
     gradPhysicalWeighted_ = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, numCubPoints_, spaceDim_));
     gradgradMats_         = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, lfs));
     valvalMats_           = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, lfs));
+    valfuncvalMats_       = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, lfs));
+    advgradvalMats_       = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, lfs));
+    pdeMats_              = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs, lfs));
+    kappa_                = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, numCubPoints_));
+    cfunc_                = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, numCubPoints_));
+    adv_                  = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, numCubPoints_, spaceDim_));
     dataF_                = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, numCubPoints_));
     datavalVecF_          = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs));
     dataUd_               = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs));
+
+    dataB_                = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, numCubPoints_));
+    datavalB_             = Teuchos::rcp(new Intrepid::FieldContainer<Real>(numCells_, lfs));
 
     // Geometric definition of the cells in the mesh, based on the cell-to-node map and the domain partition.
     Intrepid::FieldContainer<Real> &nodes = *meshMgr_->getNodes();
@@ -315,6 +346,10 @@ public:
     /****************************************************************/
 
     cellCub->getCubature(*cubPoints_, *cubWeights_);                                         // retrieve cubature points and weights
+    Intrepid::CellTools<Real>::mapToPhysicalFrame(*cubPointsPhysical_,                       // map reference cubature points to physical space
+                                                  *cubPoints_,
+                                                  *cellNodes_,
+                                                  cellType_);
     (*basisPtrs_[0]).getValues(*gradReference_, *cubPoints_, Intrepid::OPERATOR_GRAD);       // evaluate grad operator at cubature points
     (*basisPtrs_[0]).getValues(*valReference_, *cubPoints_, Intrepid::OPERATOR_VALUE);       // evaluate value operator at cubature points
 
@@ -332,8 +367,18 @@ public:
     Intrepid::FunctionSpaceTools::multiplyMeasure<Real>(*gradPhysicalWeighted_,              // multiply with weighted measure
                                                         *cellWeightedMeasure_,
                                                         *gradPhysical_);
-    Intrepid::FunctionSpaceTools::integrate<Real>(*gradgradMats_,                            // compute local grad.grad (stiffness) matrices
-                                                  *gradPhysical_,
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate conductivity kappa at cubature points
+      for (int j=0; j<numCubPoints_; ++j) {
+        (*kappa_)(i, j) = funcKappa((*cubPointsPhysical_)(i, j, 0),
+                                    (*cubPointsPhysical_)(i, j, 1),
+                                    param);
+      }
+    }
+    Intrepid::FunctionSpaceTools::tensorMultiplyDataField<Real>(*kappaGradPhysical_,         // multiply with conductivity kappa
+                                                                *kappa_,
+                                                                *gradPhysical_);
+    Intrepid::FunctionSpaceTools::integrate<Real>(*gradgradMats_,                            // compute local grad.(kappa)grad (stiffness) matrices
+                                                  *kappaGradPhysical_,
                                                   *gradPhysicalWeighted_,
                                                   Intrepid::COMP_CPP);
 
@@ -347,29 +392,81 @@ public:
                                                   *valPhysicalWeighted_,
                                                   Intrepid::COMP_CPP);
 
-    Intrepid::CellTools<Real>::mapToPhysicalFrame(*cubPointsPhysical_,                        // map reference cubature points to physical space
-                                                  *cubPoints_,
-                                                  *cellNodes_,
-                                                  cellType_);
-    for (int i=0; i<numCells_; ++i) {                                                         // evaluate functions at these points
+//    for (int i=0; i<numCells_; ++i) {                                                        // evaluate conductivity kappa at cubature points
+//      for (int j=0; j<numCubPoints_; ++j) {
+//        (*cfunc_)(i, j) = funcControl((*cubPointsPhysical_)(i, j, 0),
+//                                      (*cubPointsPhysical_)(i, j, 1));
+//      }
+//    }
+//    Intrepid::FunctionSpaceTools::scalarMultiplyDataField<Real>(*funcValPhysical_,
+//                                                                *cfunc_,
+//                                                                *valPhysical_);
+//    Intrepid::FunctionSpaceTools::integrate<Real>(*valfuncvalMats_,                          // compute local val.func.val (mass) matrices
+//                                                  *funcValPhysical_,
+//                                                  *valPhysicalWeighted_,
+//                                                  Intrepid::COMP_CPP);
+//
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate advection adv at cubature points
       for (int j=0; j<numCubPoints_; ++j) {
-        (*dataF_)(i, j) = funcRHS((*cubPointsPhysical_)(i, j, 0), (*cubPointsPhysical_)(i, j, 1));
+        for (int k=0; k<spaceDim_; ++k) {
+          std::vector<Real> adv(spaceDim_, 0);
+          funcAdv(adv, (*cubPointsPhysical_)(i, j, 0),
+                       (*cubPointsPhysical_)(i, j, 1),
+                       param);
+          (*adv_)(i, j, k) = adv[k];
+        }
       }
     }
-    Intrepid::FunctionSpaceTools::integrate<Real>(*datavalVecF_,                              // compute local data.val vectors for RHS F
+    Intrepid::FunctionSpaceTools::dotMultiplyDataField<Real>(*advGradPhysical_,              // multiply with gradient in physical space
+                                                             *adv_,
+                                                             *gradPhysical_);
+    // IMPORTANT: This is a nonsymmetric form; watch the field order in the integrand!!!
+    Intrepid::FunctionSpaceTools::integrate<Real>(*advgradvalMats_,                          // compute local (adv.grad).val (advection) matrices
+                                                  *valPhysicalWeighted_,
+                                                  *advGradPhysical_,
+                                                  Intrepid::COMP_CPP);
+
+    Intrepid::RealSpaceTools<Real>::add(*pdeMats_, *gradgradMats_, *advgradvalMats_);        // add diffusion and advection matrices
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate functions at these points
+      for (int j=0; j<numCubPoints_; ++j) {
+        (*dataF_)(i, j) = funcRHS((*cubPointsPhysical_)(i, j, 0),
+                                  (*cubPointsPhysical_)(i, j, 1),
+                                  param);
+      }
+    }
+    Intrepid::FunctionSpaceTools::integrate<Real>(*datavalVecF_,                             // compute local data.val vectors for RHS F
                                                   *dataF_,
                                                   *valPhysicalWeighted_,
                                                   Intrepid::COMP_CPP);
 
-    coord_iface->getDofCoords(*dofPoints_);                                                   // get coordinates of DOFs in reference cell
-    Intrepid::CellTools<Real>::mapToPhysicalFrame(*dofPointsPhysical_,                        // map reference DOF locations to physical space
+    coord_iface->getDofCoords(*dofPoints_);                                                  // get coordinates of DOFs in reference cell
+    Intrepid::CellTools<Real>::mapToPhysicalFrame(*dofPointsPhysical_,                       // map reference DOF locations to physical space
                                                   *dofPoints_,
                                                   *cellNodes_,
                                                   cellType_);
-    for (int i=0; i<numCells_; ++i) {                                                         // evaluate functions at these points
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate functions at these points
       for (int j=0; j<lfs; ++j) {
         (*dataUd_)(i, j) = funcTarget((*dofPointsPhysical_)(i, j, 0), (*dofPointsPhysical_)(i, j, 1));
       }
+    }
+
+    // Control Operator
+    const int nz = 9;
+    const std::vector<Real> x = {0.25, 0.50, 0.75, 0.25, 0.50, 0.75, 0.25, 0.50, 0.75};
+    const std::vector<Real> y = {0.25, 0.25, 0.25, 0.50, 0.50, 0.50, 0.75, 0.75, 0.75};
+    for (int k=0; k<nz; ++k) {
+      for (int i=0; i<numCells_; ++i) {
+        for (int j=0; j<numCubPoints_; ++j) {
+          (*dataB_)(i, j) = funcControl((*cubPointsPhysical_)(i, j, 0),
+                                        (*cubPointsPhysical_)(i, j, 1),
+                                        x[k],y[k]);
+        }
+      }
+      Intrepid::FunctionSpaceTools::integrate<Real>(*datavalB_,
+                                                    *dataB_,
+                                                    *valPhysicalWeighted_,
+                                                    Intrepid::COMP_CPP);
+      vectorDataValB_.push_back(*datavalB_);
     }
 
 
@@ -391,18 +488,43 @@ public:
     matGraph_->fillComplete();
 
     // Assemble matrices.
-    // Stiffness matrix A.
+    // PDE matrix A.
     matA_ = Tpetra::rcp(new Tpetra::CrsMatrix<>(matGraph_));
     int numLocalMatEntries = numLocalDofs*numLocalDofs;
-    Teuchos::ArrayRCP<const Real> gradgradArrayRCP = gradgradMats_->getData();
+    Teuchos::ArrayRCP<const Real> pdeArrayRCP = pdeMats_->getData();
     for (int i=0; i<numCells_; ++i) {
       for (int j=0; j<numLocalDofs; ++j) {
         matA_->sumIntoGlobalValues(cellDofs(myCellIds_[i],j),
                                    cellDofsArrayRCP(myCellIds_[i]*numLocalDofs, numLocalDofs),
-                                   gradgradArrayRCP(i*numLocalMatEntries+j*numLocalDofs, numLocalDofs));
+                                   pdeArrayRCP(i*numLocalMatEntries+j*numLocalDofs, numLocalDofs));
       }
     }
     matA_->fillComplete();
+
+    // Mass matrix B.
+    matB_ = Tpetra::rcp(new Tpetra::MultiVector<>(matA_->getRangeMap(), nz, true));
+    matB_overlap_ = Tpetra::rcp(new Tpetra::MultiVector<>(myOverlapMap_, nz, true));
+    for (int k=0; k<nz; ++k) {// assembly over number of control sources
+      for (int i=0; i<numCells_; ++i) {// assembly on the overlap map
+        for (int j=0; j<numLocalDofs; ++j) {
+          matB_overlap_->sumIntoGlobalValue(cellDofs(myCellIds_[i],j),
+                                            k,
+                                            vectorDataValB_[k][i*numLocalDofs+j]);
+        }
+      }
+    }
+    Tpetra::Export<> exporterB(matB_overlap_->getMap(), matB_->getMap()); // redistribution:
+    matB_->doExport(*matB_overlap_, exporterB, Tpetra::ADD); // from the overlap map to the unique map
+//    matB_ = Tpetra::rcp(new Tpetra::CrsMatrix<>(matGraph_));
+//    Teuchos::ArrayRCP<const Real> valfuncvalArrayRCP = valfuncvalMats_->getData();
+//    for (int i=0; i<numCells_; ++i) {
+//      for (int j=0; j<numLocalDofs; ++j) {
+//        matB_->sumIntoGlobalValues(cellDofs(myCellIds_[i],j),
+//                                   cellDofsArrayRCP(myCellIds_[i]*numLocalDofs, numLocalDofs),
+//                                   valfuncvalArrayRCP(i*numLocalMatEntries+j*numLocalDofs, numLocalDofs));
+//      }
+//    }
+//    matB_->fillComplete();
 
     // Mass matrix M.
     matM_ = Tpetra::rcp(new Tpetra::CrsMatrix<>(matGraph_));
@@ -440,7 +562,37 @@ public:
         }
       }
     }
-    
+    // vecWeights
+    vecWeights_ = Tpetra::rcp(new Tpetra::MultiVector<>(matA_->getDomainMap(), 1, true));
+    vecWeights_->putScalar(1.0);
+    /*vecWeights_->putScalar(0.0);
+    Real mask1_x1 = 0.30, mask1_x2 = 0.90, mask1_y1 = 0.20, mask1_y2 = 0.80;
+    Real mask2_x1 = 0.15, mask2_x2 = 0.25, mask2_y1 = 0.55, mask2_y2 = 0.65;
+    Real mask3_x1 = 0.45, mask3_x2 = 0.55, mask3_y1 = 0.05, mask3_y2 = 0.15;
+    for (int i=0; i<vecWeights_->getMap()->getMaxLocalIndex(); ++i) {
+      vecWeights_->replaceLocalValue(i, 0, !(i%5) ? ((static_cast<Real>(rand()) / static_cast<Real>(RAND_MAX))) : static_cast<Real>(0) );
+      //vecWeights_->replaceLocalValue(i, 0, !(i%5) ? 1 : static_cast<Real>(0) );
+    }
+    for (int i=0; i<numCells_; ++i) {
+      for (int j=0; j<numCubPoints_; ++j) {
+        if ( !( ((*cubPointsPhysical_)(i, j, 0) >= mask1_x1) &&
+                ((*cubPointsPhysical_)(i, j, 0) <= mask1_x2) &&
+                ((*cubPointsPhysical_)(i, j, 1) >= mask1_y1) &&
+                ((*cubPointsPhysical_)(i, j, 1) <= mask1_y2) ) &&
+             !( ((*cubPointsPhysical_)(i, j, 0) >= mask2_x1) &&
+                ((*cubPointsPhysical_)(i, j, 0) <= mask2_x2) &&
+                ((*cubPointsPhysical_)(i, j, 1) >= mask2_y1) &&
+                ((*cubPointsPhysical_)(i, j, 1) <= mask2_y2) ) &&
+             !( ((*cubPointsPhysical_)(i, j, 0) >= mask3_x1) &&
+                ((*cubPointsPhysical_)(i, j, 0) <= mask3_x2) &&
+                ((*cubPointsPhysical_)(i, j, 1) >= mask3_y1) &&
+                ((*cubPointsPhysical_)(i, j, 1) <= mask3_y2) ) ) {
+          vecWeights_->replaceGlobalValue(cellDofs(myCellIds_[i],j), 0, 0);
+        }
+      }
+    }*/
+
+
     // Apply Dirichlet conditions.
     // Stiffness matrix with Dirichlet conditions:
     //  AD = [ A11  A12 ]  where A = [ A11 A12 ]
@@ -453,8 +605,9 @@ public:
     //       [ G  ]            [ F2 ]
     Teuchos::RCP<Tpetra::Details::DefaultTypes::node_type> node = matA_->getNode();
     matA_dirichlet_ = matA_->clone(node);
-    matM_dirichlet_ = matM_->clone(node);
+    matB_dirichlet_ = Tpetra::rcp(new Tpetra::MultiVector<>(matA_->getRangeMap(), nz, true));
     vecF_dirichlet_ = Tpetra::rcp(new Tpetra::MultiVector<>(matA_->getRangeMap(), 1, true));
+    Tpetra::deep_copy(*matB_dirichlet_, *matB_);
     Tpetra::deep_copy(*vecF_dirichlet_, *vecF_);
     Teuchos::RCP<std::vector<std::vector<Intrepid::FieldContainer<int> > > > dirichletSideSets = meshMgr_->getSideSets();
     std::vector<std::vector<Intrepid::FieldContainer<int> > > &dss = *dirichletSideSets;
@@ -463,9 +616,11 @@ public:
     mySortedCellIds_.erase( std::unique(mySortedCellIds_.begin(), mySortedCellIds_.end()), mySortedCellIds_.end() );
     std::vector<Teuchos::Array<int> > myDirichletCellIds_(dss[0].size());
     for (int i=0; i<static_cast<int>(dss[0].size()); ++i) {
-      for (int j=0; j<dss[0][i].dimension(0); ++j) {
-        if (std::binary_search(mySortedCellIds_.begin(), mySortedCellIds_.end(), dss[0][i](j))) {
-          myDirichletCellIds_[i].push_back(dss[0][i](j));
+      if (i != 1) {  // exclude right boundary of the square domain (pure Neumann)
+        for (int j=0; j<dss[0][i].dimension(0); ++j) {
+          if (std::binary_search(mySortedCellIds_.begin(), mySortedCellIds_.end(), dss[0][i](j))) {
+            myDirichletCellIds_[i].push_back(dss[0][i](j));
+          }
         }
       }
     }
@@ -483,7 +638,6 @@ public:
         numDofsPerEdge = dofTags[j][3];
       }
     }
-    Teuchos::Array<int> myDirichletDofs_;
     for (int i=0; i<static_cast<int>(myDirichletCellIds_.size()); ++i) {
       for (int j=0; j<myDirichletCellIds_[i].size(); ++j) {
         for (int k=0; k<numDofsPerNode; ++k) {
@@ -501,7 +655,6 @@ public:
     std::sort(myDirichletDofs_.begin(), myDirichletDofs_.end());
     myDirichletDofs_.erase( std::unique(myDirichletDofs_.begin(), myDirichletDofs_.end()), myDirichletDofs_.end() );
     matA_dirichlet_->resumeFill();
-    matM_dirichlet_->resumeFill();
     for (int i=0; i<myDirichletDofs_.size(); ++i) {
       if (myUniqueMap_->isNodeGlobalElement(myDirichletDofs_[i])) {
         size_t numRowEntries = matA_dirichlet_->getNumEntriesInGlobalRow(myDirichletDofs_[i]);
@@ -510,25 +663,27 @@ public:
         Teuchos::Array<Real> canonicalValues(numRowEntries, 0);    
         Teuchos::Array<Real> zeroValues(numRowEntries, 0);    
         matA_dirichlet_->getGlobalRowCopy(myDirichletDofs_[i], indices, values, numRowEntries);
-        matM_dirichlet_->getGlobalRowCopy(myDirichletDofs_[i], indices, values, numRowEntries);
         for (int j=0; j<indices.size(); ++j) {
           if (myDirichletDofs_[i] == indices[j]) {
             canonicalValues[j] = 1.0;
           }
         }
         matA_dirichlet_->replaceGlobalValues(myDirichletDofs_[i], indices, canonicalValues);
-        matM_dirichlet_->replaceGlobalValues(myDirichletDofs_[i], indices, zeroValues);
+        for (int k=0; k<nz; k++) {
+          matB_dirichlet_->replaceGlobalValue(myDirichletDofs_[i], k, 0);
+        }
         vecF_dirichlet_->replaceGlobalValue(myDirichletDofs_[i], 0, 0);
       }
     }
     matA_dirichlet_->fillComplete();
-    matM_dirichlet_->fillComplete();
+//    matB_dirichlet_->scale(-1.0);
+//    matB_dirichlet_->fillComplete();
 
     // Create matrix transposes.
     Tpetra::RowMatrixTransposer<> transposerA(matA_dirichlet_);
-    Tpetra::RowMatrixTransposer<> transposerM(matM_dirichlet_);
+//    Tpetra::RowMatrixTransposer<> transposerB(matB_dirichlet_);
     matA_dirichlet_trans_ = transposerA.createTranspose();
-    matM_dirichlet_trans_ = transposerM.createTranspose();
+//    matB_dirichlet_trans_ = transposerB.createTranspose();
 
 
     /*********************************/
@@ -558,6 +713,138 @@ public:
   }
 
 
+  void updateF(const std::vector<Real> &param) {
+    Intrepid::FieldContainer<int> &cellDofs = *(dofMgr_->getCellDofs());
+    int numLocalDofs = cellDofs.dimension(1);
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate RHS function at cubature points
+      for (int j=0; j<numCubPoints_; ++j) {
+        (*dataF_)(i, j) = funcRHS((*cubPointsPhysical_)(i, j, 0),
+                                  (*cubPointsPhysical_)(i, j, 1),
+                                  param);
+      }
+    }
+    Intrepid::FunctionSpaceTools::integrate<Real>(*datavalVecF_,                             // compute local data.val vectors for RHS F
+                                                  *dataF_,
+                                                  *valPhysicalWeighted_,
+                                                  Intrepid::COMP_CPP);
+
+    // vecF_ requires assembly using vecF_overlap_ and redistribution
+    vecF_ = Tpetra::rcp(new Tpetra::MultiVector<>(matA_->getRangeMap(), 1, true));
+    vecF_overlap_ = Tpetra::rcp(new Tpetra::MultiVector<>(myOverlapMap_, 1, true));
+    for (int i=0; i<numCells_; ++i) {                                                 // assembly on the overlap map
+      for (int j=0; j<numLocalDofs; ++j) {
+        vecF_overlap_->sumIntoGlobalValue(cellDofs(myCellIds_[i],j),
+                                          0,
+                                          (*datavalVecF_)[i*numLocalDofs+j]);
+      }
+    }
+    Tpetra::Export<> exporter(vecF_overlap_->getMap(), vecF_->getMap());              // redistribution:
+    vecF_->doExport(*vecF_overlap_, exporter, Tpetra::ADD);                           // from the overlap map to the unique map
+
+    Tpetra::deep_copy(*vecF_dirichlet_, *vecF_);
+    for (int i=0; i<myDirichletDofs_.size(); ++i) {
+      if (myUniqueMap_->isNodeGlobalElement(myDirichletDofs_[i])) {
+        vecF_dirichlet_->replaceGlobalValue(myDirichletDofs_[i], 0, 0);
+      }
+    }
+  }
+
+
+  void updateA(const std::vector<Real> &param) {
+    const Real one(1);
+
+    Intrepid::FieldContainer<int> &cellDofs = *(dofMgr_->getCellDofs());
+    Teuchos::ArrayRCP<const int> cellDofsArrayRCP = cellDofs.getData();
+    int numLocalDofs = cellDofs.dimension(1);
+
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate conductivity kappa at cubature points
+      for (int j=0; j<numCubPoints_; ++j) {
+        (*kappa_)(i, j) = funcKappa((*cubPointsPhysical_)(i, j, 0),
+                                    (*cubPointsPhysical_)(i, j, 1),
+                                    param);
+      }
+    }
+    Intrepid::FunctionSpaceTools::tensorMultiplyDataField<Real>(*kappaGradPhysical_,         // multiply with conductivity kappa
+                                                                *kappa_,
+                                                                *gradPhysical_);
+    Intrepid::FunctionSpaceTools::integrate<Real>(*gradgradMats_,                            // compute local grad.(kappa)grad (stiffness) matrices
+                                                  *kappaGradPhysical_,
+                                                  *gradPhysicalWeighted_,
+                                                  Intrepid::COMP_CPP);
+    for (int i=0; i<numCells_; ++i) {                                                        // evaluate advection adv at cubature points
+      for (int j=0; j<numCubPoints_; ++j) {
+        for (int k=0; k<spaceDim_; ++k) {
+          std::vector<Real> adv(spaceDim_, 0);
+          funcAdv(adv, (*cubPointsPhysical_)(i, j, 0),
+                       (*cubPointsPhysical_)(i, j, 1),
+                       param);
+          (*adv_)(i, j, k) = adv[k];
+        }
+      }
+    }
+    Intrepid::FunctionSpaceTools::dotMultiplyDataField<Real>(*advGradPhysical_,              // multiply with gradient in physical space
+                                                             *adv_,
+                                                             *gradPhysical_);
+    // IMPORTANT: This is a nonsymmetric form; watch the field order in the integrand!!!
+    Intrepid::FunctionSpaceTools::integrate<Real>(*advgradvalMats_,                          // compute local (adv.grad).val (advection) matrices
+                                                  *valPhysicalWeighted_,
+                                                  *advGradPhysical_,
+                                                  Intrepid::COMP_CPP);
+
+    Intrepid::RealSpaceTools<Real>::add(*pdeMats_, *gradgradMats_, *advgradvalMats_);        // add diffusion and advection matrices
+
+    int numLocalMatEntries = numLocalDofs*numLocalDofs;
+    Teuchos::ArrayRCP<const Real> pdeArrayRCP = pdeMats_->getData();
+    matA_->resumeFill();
+    matA_->setAllToScalar(0);
+    for (int i=0; i<numCells_; ++i) {
+      for (int j=0; j<numLocalDofs; ++j) {
+        matA_->sumIntoGlobalValues(cellDofs(myCellIds_[i],j),
+                                   cellDofsArrayRCP(myCellIds_[i]*numLocalDofs, numLocalDofs),
+                                   pdeArrayRCP(i*numLocalMatEntries+j*numLocalDofs, numLocalDofs));
+      }
+    }
+    matA_->fillComplete();
+
+    Teuchos::RCP<Tpetra::Details::DefaultTypes::node_type> node = matA_->getNode();
+    matA_dirichlet_ = matA_->clone(node);
+    matA_dirichlet_->resumeFill();
+    for (int i=0; i<myDirichletDofs_.size(); ++i) {
+      if (myUniqueMap_->isNodeGlobalElement(myDirichletDofs_[i])) {
+        size_t numRowEntries = matA_dirichlet_->getNumEntriesInGlobalRow(myDirichletDofs_[i]);
+        Teuchos::Array<int> indices(numRowEntries, 0);
+        Teuchos::Array<Real> values(numRowEntries, 0);
+        Teuchos::Array<Real> canonicalValues(numRowEntries, 0);
+        matA_dirichlet_->getGlobalRowCopy(myDirichletDofs_[i], indices, values, numRowEntries);
+        for (int j=0; j<indices.size(); ++j) {
+          if (myDirichletDofs_[i] == indices[j]) {
+            canonicalValues[j] = one;
+          }
+	}
+	matA_dirichlet_->replaceGlobalValues(myDirichletDofs_[i], indices, canonicalValues);
+      }
+    }
+    matA_dirichlet_->fillComplete();
+
+    Tpetra::RowMatrixTransposer<> transposerA(matA_dirichlet_);
+    matA_dirichlet_trans_ = transposerA.createTranspose();
+    
+    // Construct solver using Amesos2 factory.
+    try{
+      solverA_ = Amesos2::create< Tpetra::CrsMatrix<>,Tpetra::MultiVector<> >("KLU2", matA_dirichlet_);
+    } catch (std::invalid_argument e) {
+      std::cout << e.what() << std::endl;
+    }
+    try{
+      solverA_trans_ = Amesos2::create< Tpetra::CrsMatrix<>,Tpetra::MultiVector<> >("KLU2", matA_dirichlet_trans_);
+    } catch (std::invalid_argument e) {
+      std::cout << e.what() << std::endl;
+    }
+    solverA_->numericFactorization();
+    solverA_trans_->numericFactorization();
+  }
+
+
   Teuchos::RCP<Tpetra::CrsMatrix<> > getMatA(const bool &transpose = false) const {
     if (transpose) {
       return matA_dirichlet_trans_;
@@ -567,15 +854,38 @@ public:
     }
   }
 
-
-  Teuchos::RCP<Tpetra::CrsMatrix<> > getMatB(const bool &transpose = false) const {
-    if (transpose) {
-      return matM_dirichlet_trans_;
+  void applyMatB(Teuchos::RCP<Tpetra::MultiVector<> > &out, const std::vector<Real> &in,
+                 const bool sumInto = false) const {
+    const size_t nz = matB_->getNumVectors();
+    if (!sumInto) {
+      out->scale(0.0);
     }
-    else {
-      return matM_dirichlet_;
+    for (size_t i = 0; i < nz; ++i) {
+      Teuchos::ArrayView<const size_t> col(&i,1);
+      out->update(in[i],*(matB_->subView(col)),1.0);
     }
   }
+
+  void applyMatBtranspose(Teuchos::RCP<std::vector<Real> > &out, const Tpetra::MultiVector<> &in) {
+    const size_t nz = matB_->getNumVectors();
+    out->assign(nz,0.0);
+    std::vector<Real> val(1);
+    for (size_t i = 0; i < nz; ++i) {
+      val[0] = 0.0;
+      Teuchos::ArrayView<const size_t> col(&i,1);
+      in.dot(*(matB_->subView(col)),val);
+      (*out)[i] = val[0];
+    }
+  }
+
+//  Teuchos::RCP<Tpetra::CrsMatrix<> > getMatB(const bool &transpose = false) const {
+//    if (transpose) {
+//      return matB_dirichlet_trans_;
+//    }
+//    else {
+//      return matB_dirichlet_;
+//    }
+//  }
 
 
   Teuchos::RCP<Tpetra::CrsMatrix<> > getMatM() const {
@@ -608,98 +918,97 @@ public:
   }
 
 
-  Real funcRHS(const Real &x1, const Real &x2) const {
-    return 2.0*M_PI*M_PI*std::sin(M_PI*x1)*std::sin(M_PI*x2) + (1.0/(alpha_*128.0*M_PI*M_PI))*std::sin(8.0*M_PI*x1)*std::sin(8.0*M_PI*x2);
+  inline Real funcRHS(const Real &x1, const Real &x2,
+                      const std::vector<Real> &param) const {
+    const int ns = 5;
+    const Real half(0.5), one(1), two(2);
+    Real source(0), arg1(0), arg2(0), mag(0), x0(0), y0(0), sx(0), sy(0);
+    // Upper and lower bounds on source magintudes
+    const std::vector<Real> ml = {1.5, 1.2, 1.5, 1.2, 1.1};
+    const std::vector<Real> mu = {2.5, 1.8, 1.9, 2.6, 1.5};
+    // Upper and lower bounds on source locations
+    const std::vector<Real> xl = {0.45, 0.75, 0.40, 0.05, 0.85};
+    const std::vector<Real> xu = {0.55, 0.85, 0.60, 0.35, 0.95};
+    const std::vector<Real> yl = {0.25, 0.55, 0.50, 0.45, 0.45};
+    const std::vector<Real> yu = {0.35, 0.65, 0.70, 0.65, 0.55};
+    // Upper and lower bounds on source widths
+    const std::vector<Real> sxl = {0.03, 0.02, 0.01, 0.02, 0.015};
+    const std::vector<Real> sxu = {0.07, 0.04, 0.05, 0.04, 0.025};
+    const std::vector<Real> syl = {0.04, 0.01, 0.02, 0.02, 0.01};
+    const std::vector<Real> syu = {0.12, 0.05, 0.04, 0.04, 0.03};
+    for (int i=0; i<ns; ++i) {
+      mag  = ml[i] + (mu[i]-ml[i])*half*(param[i]+one);
+      x0   = xl[i] + (xu[i]-xl[i])*half*(param[i+1*ns]+one);
+      y0   = yl[i] + (yu[i]-yl[i])*half*(param[i+3*ns]+one);
+      sx   = sxl[i] + (sxu[i]-sxl[i])*half*(param[i+2*ns]+one);
+      sy   = syl[i] + (syu[i]-syl[i])*half*(param[i+4*ns]+one);
+      arg1 = std::pow((x1-x0)/sx, two);
+      arg2 = std::pow((x2-y0)/sy, two);
+      source += mag*std::exp(-half*(arg1+arg2));
+    }
+    return source;
   }
 
 
-  Real funcTarget(const Real &x1, const Real &x2) const {
-    return std::sin(M_PI*x1)*std::sin(M_PI*x2) - std::sin(8.0*M_PI*x1)*std::sin(8.0*M_PI*x2);
+  inline Real funcControl(const Real &x1, const Real &x2, const Real &x, const Real &y) const {
+      const Real sx(0.05), sy(0.05), half(0.5);
+      return std::exp(- half*(x1-x)*(x1-x) / (sx*sx)
+                      - half*(x2-y)*(x2-y) / (sy*sy));
+//    const std::vector<Real> x0  = {0.2, 0.2, 0.8, 0.8, 0.5};
+//    const std::vector<Real> y0  = {0.2, 0.8, 0.2, 0.8, 0.5};
+//    const std::vector<Real> sx0 = {0.05, 0.05, 0.05, 0.05, 0.05};
+//    const std::vector<Real> sy0 = {0.05, 0.05, 0.05, 0.05, 0.05};
+//    const int ns = x0.size();
+//    const Real half(0.5);
+//    Real val(0);
+//    for (int i=0; i<ns; ++i) {
+//      val += std::exp(- half*(x1-x0[i])*(x1-x0[i]) / (sx0[i]*sx0[i])
+//                      - half*(x2-y0[i])*(x2-y0[i]) / (sy0[i]*sy0[i]) );
+//    }
+//    return val;
+    //return (x1 <= 0.1 ? static_cast<Real>(1) : static_cast<Real>(0));
   }
 
 
-  Real funcStateSolution(const Real &x1, const Real &x2) const {
-    return std::sin(M_PI*x1)*std::sin(M_PI*x2);
+  inline Real funcTarget(const Real &x1, const Real &x2) const {
+    return static_cast<Real>(0);
   }
 
 
-  Real computeStateError(const Teuchos::RCP<const Tpetra::MultiVector<> > &soln) const {
-
-    Teuchos::RCP<Tpetra::MultiVector<> > soln_overlap =
-      Tpetra::rcp(new Tpetra::MultiVector<>(vecF_overlap_->getMap(), 1, true));
-    Tpetra::Import<> importer(vecUd_->getMap(), soln_overlap->getMap());              // redistribution:
-    soln_overlap->doImport(*soln, importer, Tpetra::REPLACE);                         // from the unique map to the overlap map
-
-    Intrepid::DefaultCubatureFactory<Real> cubFactory;                                       // create cubature factory
-    int cubDeg = 6;                                                                          // set cubature degree, e.g., 6
-    Teuchos::RCP<Intrepid::Cubature<Real> > cellCub = cubFactory.create(cellType_, cubDeg);  // create cubature for error computation
-    int numCubPts = cellCub->getNumPoints();                                                 // retrieve number of cubature points
-    int lfs = dofMgr_->getLocalFieldSize(0);
-    Intrepid::FieldContainer<Real> cubPts(numCubPts, spaceDim_);
-    Intrepid::FieldContainer<Real> cubWts(numCubPts);
-    Intrepid::FieldContainer<Real> cubPtsPhys(numCells_, numCubPts, spaceDim_);
-    Intrepid::FieldContainer<Real> jac(numCells_, numCubPts, spaceDim_, spaceDim_);
-    Intrepid::FieldContainer<Real> jacDet(numCells_, numCubPts);
-    Intrepid::FieldContainer<Real> valRef(lfs, numCubPts);
-    Intrepid::FieldContainer<Real> valPhys(numCells_, lfs, numCubPts);
-    Intrepid::FieldContainer<Real> wtMeas(numCells_, numCubPts);
-    Intrepid::FieldContainer<Real> inCoeffs(numCells_, lfs);
-    Intrepid::FieldContainer<Real> funcVals(numCells_, numCubPts);
-    Intrepid::FieldContainer<Real> funcValsWt(numCells_, numCubPts);
-    Intrepid::FieldContainer<Real> normSquaredError(numCells_);
-
-    cellCub->getCubature(cubPts, cubWts);                                         // retrieve cubature points and weights
-    (*basisPtrs_[0]).getValues(valRef, cubPts, Intrepid::OPERATOR_VALUE);         // evaluate value operator at cubature points
-
-    Intrepid::CellTools<Real>::setJacobian(jac, cubPts, *cellNodes_, cellType_);  // compute cell Jacobians
-    Intrepid::CellTools<Real>::setJacobianDet(jacDet, jac);                       // compute determinants of cell Jacobians
-
-    Intrepid::FunctionSpaceTools::HGRADtransformVALUE<Real>(valPhys,              // transform reference values into physical space
-                                                            valRef);
-
-    Intrepid::FunctionSpaceTools::computeCellMeasure<Real>(wtMeas,                // compute weighted cell measure
-                                                           jacDet,
-                                                           cubWts);
-
-    Intrepid::CellTools<Real>::mapToPhysicalFrame(cubPtsPhys,                     // map reference cubature points to physical space
-                                                  cubPts,
-                                                  *cellNodes_,
-                                                  cellType_);
-
-    Intrepid::FieldContainer<int> &cellDofs = *(dofMgr_->getCellDofs());
-    Teuchos::ArrayRCP<const Real> soln_data = soln_overlap->get1dView();                // populate inCoeffs
-    for (int i=0; i<numCells_; ++i) {
-      for (int j=0; j<lfs; ++j) {
-        inCoeffs(i, j) = soln_data[soln_overlap->getMap()->getLocalElement(cellDofs(myCellIds_[i],j))];
-      }
+  inline Real funcKappa(const Real &x1, const Real &x2,
+                        const std::vector<Real> &param) const {
+    // random diffusion coefficient from i. babuska, f. nobile, r. tempone 2010.
+    // simplified model for random stratified media.
+    const int ns = 10;
+    const Real one(1), two(2), three(3), eight(8), sixteen(16), half(0.5);
+    const Real lc = one/sixteen, sqrtpi = std::sqrt(M_PI);
+    const Real xi = std::sqrt(sqrtpi*lc), sqrt3 = std::sqrt(three);
+    Real f(0), phi(0);
+    Real val = one + sqrt3*param[25]*std::sqrt(sqrtpi*lc*half);
+    Real arg = one + sqrt3*std::sqrt(sqrtpi*lc*half);
+    for (int i = 1; i < ns; ++i) {
+      f = floor(half*static_cast<Real>(i+1));
+      phi = ((i+1)%2 ? std::sin(f*M_PI*x1) : std::cos(f*M_PI*x1));
+      val += xi*std::exp(-std::pow(f*M_PI*lc,two)/eight)*phi*sqrt3*param[i+25];
+      arg += xi*std::exp(-std::pow(f*M_PI*lc,two)/eight)*std::abs(phi)*sqrt3;
     }
+    return half + two*std::exp(val)/std::exp(arg);
+  }
 
-    Intrepid::FunctionSpaceTools::evaluate<Real>(funcVals, inCoeffs, valPhys);
 
-    for (int i=0; i<numCells_; ++i) {                                                   // compute error
-      for (int j=0; j<numCubPts; ++j) {
-        funcVals(i, j) -= funcStateSolution(cubPtsPhys(i, j, 0), cubPtsPhys(i, j, 1));
-      }
-    }
-
-    Intrepid::FunctionSpaceTools::scalarMultiplyDataData<Real>(funcValsWt,              // multiply with weighted measure
-                                                               wtMeas,
-                                                               funcVals);
-
-    Intrepid::FunctionSpaceTools::integrate<Real>(normSquaredError,                     // compute norm squared of local error
-                                                  funcVals,
-                                                  funcValsWt,
-                                                  Intrepid::COMP_CPP);
-
-    Real localErrorSum(0);
-    Real globalErrorSum(0);
-    for (int i=0; i<numCells_; ++i) {
-      localErrorSum += normSquaredError(i);
-    }
-    Teuchos::RCP<const Teuchos::Comm<int> > comm = soln_overlap->getMap()->getComm();
-    Teuchos::reduceAll<int, Real>(*comm, Teuchos::REDUCE_SUM, 1, &localErrorSum, &globalErrorSum);
-
-    return globalErrorSum;
+  inline void funcAdv(std::vector<Real> &adv,
+                      const Real &x1, const Real &x2,
+                      const std::vector<Real> &param) const {
+    const Real half(0.5), one(1), five(5), ten(10);
+    const Real a = five*half*(param[36]+one);
+    const Real b = five + (ten-five)*half*(param[35]+one);
+    adv[0] = b - a*x1;
+    adv[1] = a*x2;
+//    const Real half(0.5), one(1), four(4), ten(10);
+//    const Real mag = one + (ten-one)*half*(param[35]+one);
+//    const Real ang = M_PI/four * param[36];
+//    adv[0] = mag*std::cos(ang);
+//    adv[1] = mag*std::sin(ang);
   }
 
 

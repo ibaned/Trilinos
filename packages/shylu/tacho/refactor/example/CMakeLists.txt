@@ -111,9 +111,15 @@ IF(Kokkos_ENABLE_Pthread)
     COMM serial mpi
   )
   TRIBITS_ADD_EXECUTABLE(
-    Tacho_ExampleSymbolicFactorization_Pthreads
+    Tacho_ExampleIncompleteSymbolicFactorization_Pthreads
     NOEXEPREFIX
-    SOURCES Tacho_ExampleSymbolicFactorization_Pthreads.cpp
+    SOURCES Tacho_ExampleIncompleteSymbolicFactorization_Pthreads.cpp
+    COMM serial mpi
+  )
+  TRIBITS_ADD_EXECUTABLE(
+    Tacho_ExampleDirectSymbolicFactorization_Pthreads
+    NOEXEPREFIX
+    SOURCES Tacho_ExampleDirectSymbolicFactorization_Pthreads.cpp
     COMM serial mpi
   )
   TRIBITS_ADD_EXECUTABLE(
@@ -167,16 +173,16 @@ ENDIF()
 #   )
 # ENDIF()
 
-IF(Kokkos_ENABLE_OpenMP)
-IF(Kokkos_ENABLE_Pthread)
-  TRIBITS_ADD_EXECUTABLE(
-    Tacho_ExampleCholSuperNodesByBlocks_OpenMP
-    NOEXEPREFIX
-    SOURCES Tacho_ExampleCholSuperNodesByBlocks_OpenMP.cpp
-    COMM serial mpi
-  )
-ENDIF()
-ENDIF()
+# IF(Kokkos_ENABLE_OpenMP)
+# IF(Kokkos_ENABLE_Pthread)
+#   TRIBITS_ADD_EXECUTABLE(
+#     Tacho_ExampleCholSuperNodesByBlocks_OpenMP
+#     NOEXEPREFIX
+#     SOURCES Tacho_ExampleCholSuperNodesByBlocks_OpenMP.cpp
+#     COMM serial mpi
+#   )
+# ENDIF()
+# ENDIF()
 
 
 # Solver Interface
