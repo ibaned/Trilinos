@@ -115,9 +115,6 @@ StatusType NormWRMS::
 checkStatus(const NOX::Solver::Generic& problem,
         NOX::StatusTest::CheckType checkType)
 {
-  std::cerr << "NormWRMS::checkStatus()\n";
-  std::cerr << "typeid(problem).name() = "
-    << typeid(problem).name() << '\n';
 
   if (checkType == NOX::StatusTest::None) {
     status = Unevaluated;
@@ -128,20 +125,13 @@ checkStatus(const NOX::Solver::Generic& problem,
   status = Unconverged;
 
   const Abstract::Group& soln = problem.getSolutionGroup();
-  std::cerr << "problem.getPreviousSolutionGroup();\n";
   const Abstract::Group& oldsoln = problem.getPreviousSolutionGroup();
   const Abstract::Vector& x = soln.getScaledX();
-
-  std::cerr << "soln.getScaledX().length() = "
-    << soln.getScaledX().length() << '\n';
-  std::cerr << "oldsoln.getScaledX().length() = "
-    << oldsoln.getScaledX().length() << '\n';
 
   // On the first iteration, the old and current solution are the same so
   // we should return the test as unconverged until there is a valid
   // old solution (i.e. the number of iterations is greater than zero).
   int niters = problem.getNumIterations();
-  std::cerr << "niters = " << niters << '\n';
   if (niters == 0)
   {
     status = Unconverged;
@@ -158,7 +148,6 @@ checkStatus(const NOX::Solver::Generic& problem,
 
   // Create the weighting vector u = RTOL |x| + ATOL
   // |x| is evaluated at the old time step
-  std::cerr << "v->abs(oldSoln.getScaledX())\n";
   v->abs(oldsoln.getScaledX());
   if (atolIsScalar)
   {
