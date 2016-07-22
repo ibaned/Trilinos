@@ -54,6 +54,7 @@ Piro::ObserverToLOCASaveDataStrategyAdapter::ObserverToLOCASaveDataStrategyAdapt
 void
 Piro::ObserverToLOCASaveDataStrategyAdapter::saveSolution(const NOX::Abstract::Vector &x, double p)
 {
+  std::cerr << "ObserverToLOCASaveDataStrategyAdapter::saveSolution\n";
   const Teuchos::Ptr<const NOX::Thyra::Vector> x_thyra =
     Teuchos::ptr(dynamic_cast<const NOX::Thyra::Vector *>(&x));
 

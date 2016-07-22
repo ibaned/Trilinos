@@ -200,18 +200,24 @@ Piro::LOCAAdaptiveSolver<Scalar>::evalModelImpl(
 //    f_sol_dim = solMgr_->getSolutionGroup()->getX().length();
     f_sol_dim = Teuchos::rcp_dynamic_cast< ::Thyra::LOCAAdaptiveState >(solMgr_->getState())
           ->getSolutionGroup()->getX().length();
+    std::cerr << "x_args_dim " << x_args_dim << " f_sol_dim " << f_sol_dim << '\n';
 
 
   }
 
+  if (Teuchos::is_null(x_outargs)) std::cerr << "Teuchos::is_null(x_outargs)\n";
+  if (x_args_dim < f_sol_dim) std::cerr << "x_args_dim < f_sol_dim\n";
+
   if(Teuchos::is_null(x_outargs) || (x_args_dim < f_sol_dim)){ // g is not large enough to store the solution
+    std::cerr << "g is not large enough to store the solution\n";
 
-      x_final = Thyra::createMember(this->get_g_space(this->num_g()));
+    x_final = Thyra::createMember(this->get_g_space(this->num_g()));
 
-      mutable_outArgsPtr->set_g(this->num_g(), x_final);
+    mutable_outArgsPtr->set_g(this->num_g(), x_final);
 
   }
   else { // g is OK, use it
+    std::cerr << "g is OK, use it\n";
     x_final = x_outargs;
   }
 
@@ -226,6 +232,7 @@ Piro::LOCAAdaptiveSolver<Scalar>::evalModelImpl(
 
   // If the arrays need resizing
   if(x_args_dim < f_sol_dim){
+    std::cerr << "the arrays need resizing\n";
 
     const int parameterCount = this->Np();
 
@@ -274,10 +281,13 @@ Piro::observedLocaSolver(
     const Teuchos::RCP<Thyra::AdaptiveSolutionManager> &solMgr,
     const Teuchos::RCP<Piro::ObserverBase<Scalar> > &observer)
 {
+  std::cerr << "Piro::observedLocaSolver()\n";
   const Teuchos::RCP<LOCA::Thyra::SaveDataStrategy> saveDataStrategy =
     Teuchos::nonnull(observer) ?
     Teuchos::rcp(new Piro::ObserverToLOCASaveDataStrategyAdapter(observer)) :
     Teuchos::null;
+  if (Teuchos::nonnull(saveDataStrategy))
+    std::cerr << "Teuchos::nonnull(saveDataStrategy)\n";
 
   return Teuchos::rcp(new Piro::LOCAAdaptiveSolver<Scalar>(appParams, model, solMgr, saveDataStrategy));
 }

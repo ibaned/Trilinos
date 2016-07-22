@@ -119,6 +119,7 @@ void
 Piro::ObserverToRythmosIntegrationObserverAdapter<Scalar>::observeTimeStep(
     const Rythmos::StepperBase<Scalar> &stepper)
 {
+  std::cerr << "ObserverToRythmosIntegrationObserverAdapter<Scalar>::observeTimeStep\n";
   typedef Rythmos::ForwardSensitivityStepper<Scalar> FSS;
   const bool hasSensitivities = Teuchos::nonnull(
       Teuchos::ptr_dynamic_cast<const FSS>(Teuchos::ptr(&stepper)));
@@ -132,6 +133,7 @@ Piro::ObserverToRythmosIntegrationObserverAdapter<Scalar>::observeTimeStepStatus
     const Rythmos::StepStatus<Scalar> &status,
     bool hasSensitivities)
 {
+  std::cerr << "ObserverToRythmosIntegrationObserverAdapter<Scalar>::observeTimeStepStatus\n";
   Teuchos::RCP<const Thyra::VectorBase<Scalar> > solution = status.solution;
   solution.assert_not_null();
 

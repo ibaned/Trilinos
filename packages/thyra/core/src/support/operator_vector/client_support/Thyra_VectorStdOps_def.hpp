@@ -255,6 +255,8 @@ template<class Scalar>
 void Thyra::abs( const VectorBase<Scalar>& x, const Ptr<VectorBase<Scalar> > &y )
 {
   using Teuchos::tuple; using Teuchos::ptrInArg; using Teuchos::null;
+  std::cerr << "Thyra::abs x.range()->dim() " << x.range()->dim()
+            << " y->range()->dim()\n" << y->range()->dim() << '\n';
   RTOpPack::TOpAbs<Scalar> abs_op;
   applyOp<Scalar>( abs_op, tuple(ptrInArg(x)), tuple(y), null );
 }
