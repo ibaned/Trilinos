@@ -156,8 +156,14 @@ NOX::Abstract::Vector&
 NOX::Thyra::Vector::
 abs(const NOX::Abstract::Vector& src)
 {
+  std::cerr << "NOX::Thyra::Vector::abs(src)\n";
   const NOX::Thyra::Vector& source =
     dynamic_cast<const NOX::Thyra::Vector&>(src);
+  std::cerr << "::Thyra::abs(*src.thyraVec, outArg(*thyraVec)\n";
+  std::cerr << "source.thyraVec->space()->dim = "
+    << source.thyraVec->space()->dim() << '\n';
+  std::cerr << "thyraVec->space()->dim = "
+    << thyraVec->space()->dim() << '\n';
   ::Thyra::abs(*source.thyraVec, outArg(*thyraVec));
   return *this;
 }
