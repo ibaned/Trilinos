@@ -157,6 +157,29 @@ public:
   }
 #endif
 
+  void registerAlgorithmFactory(std::string const& name,
+      RCP<AlgorithmFactory<Adapter> > factory)
+  {
+    if (factoryRegistry_.is_null()) {
+      factoryRegistry_ = new factory_registry_t();
+    }
+    factoryRegistry_[name] = factory;
+  }
+
+  RCP<Algorithm<Adapter> >
+  buildAlgorithmFromFactory(std::string const& name) const
+  {
+    RCP<Algorithm<Adapter> > result;
+    if (factoryRegistry_.is_null())
+      return result;
+    typename factory_registry_t::const_iterator it =
+        factoryRegistry_->find(name);
+    if (it == factoryRegistry_->end())
+      return result;
+    result = it->second->build(this->envConst_, this->comm_,
+        this->baseInputAdapter_);
+    return result;
+  }
 
 protected:
 
@@ -167,6 +190,8 @@ protected:
   // graph, matrix, mesh, identifier list, and coordinate list).
 
   typedef typename Adapter::base_adapter_t base_adapter_t;
+  typedef std::map<std::string, RCP<AlgorithmFactory<Adapter> > >
+      factory_registry_t;
 
   RCP<const Adapter> inputAdapter_;
   RCP<const base_adapter_t> baseInputAdapter_;
@@ -201,6 +226,10 @@ protected:
   // If the user requested timing, this is the TimerManager.
 
   RCP<TimerManager> timer_;
+
+  // Registry for user-provided Algorithm factories
+
+  RCP<factory_registry_t> factoryRegistry_;
 
 private:
   void setupProblemEnvironment(ParameterList *pl);
