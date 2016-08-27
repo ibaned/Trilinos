@@ -170,12 +170,14 @@ public:
   buildAlgorithmFromFactory(std::string const& name) const
   {
     RCP<Algorithm<Adapter> > result;
-    if (factoryRegistry_.is_null())
+    if (factoryRegistry_.is_null()) {
       return result;
+    }
     typename factory_registry_t::const_iterator it =
         factoryRegistry_->find(name);
-    if (it == factoryRegistry_->end())
+    if (it == factoryRegistry_->end()) {
       return result;
+    }
     result = it->second->build(this->envConst_, this->comm_,
         this->baseInputAdapter_);
     return result;
