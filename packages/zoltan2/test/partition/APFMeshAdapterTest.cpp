@@ -357,6 +357,7 @@ int main(int narg, char *arg[]) {
   typedef Zoltan2::APFMeshAdapter<apf::Mesh2*> inputAdapter_t;
   typedef Zoltan2::EvaluatePartition<inputAdapter_t> quality_t;
   typedef Zoltan2::MeshAdapter<apf::Mesh2*> baseMeshAdapter_t;
+  typedef Zoltan2::ParMAFactory<inputAdapter_t> algorithmFactory_t;
   
   double time_1=PCU_Time();
   inputAdapter_t *ia =
@@ -397,6 +398,7 @@ int main(int narg, char *arg[]) {
     if (me == 0) cout << "Creating partitioning problem ... \n\n";
 
     Zoltan2::PartitioningProblem<inputAdapter_t> problem(ia, &params, CommT);
+    problem.registerAlgorithmFactory("parma", rcp(new algorithmFactory_t()));
 
     // call the partitioner
     if (me == 0) cout << "Calling the partitioner ... \n\n";
