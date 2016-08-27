@@ -642,4 +642,20 @@ void AlgParMA<Adapter>::partition(
 
 #endif // HAVE_ZOLTAN2_PARMA
 
+namespace Zoltan2 {
+
+template <typename Adapter>
+class ParMAFactory : public AlgorithmFactory<Adapter> {
+public:
+  typedef typename Adapter::base_adapter_t base_adapter_t;
+  virtual RCP<Algorithm<Adapter> >
+  build(RCP<const Environment> envConst,
+      RCP<const Comm<int> > comm, RCP<const base_adapter_t> baseInputAdapter)
+  {
+    return new AlgParMA<Adapter>(envConst, comm, baseInputAdapter);
+  }
+};
+
+} // namespace Zoltan2
+
 #endif
