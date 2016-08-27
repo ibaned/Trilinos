@@ -161,9 +161,9 @@ public:
       RCP<AlgorithmFactory<Adapter> > factory)
   {
     if (factoryRegistry_.is_null()) {
-      factoryRegistry_ = new factory_registry_t();
+      factoryRegistry_ = rcp(new factory_registry_t());
     }
-    factoryRegistry_[name] = factory;
+    factoryRegistry_->insert(std::make_pair(name, factory));
   }
 
   RCP<Algorithm<Adapter> >

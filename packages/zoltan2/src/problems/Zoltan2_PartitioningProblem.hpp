@@ -465,11 +465,6 @@ void PartitioningProblem<Adapter>::solve(bool updateInputData)
                                            this->comm_,
                                            this->baseInputAdapter_));
     }
-    else if (algName_ == std::string("parma")) {
-      this->algorithm_ = rcp(new AlgParMA<Adapter>(this->envConst_,
-                                           this->comm_,
-                                           this->baseInputAdapter_));
-    }
     else if (algName_ == std::string("scotch")) {
       this->algorithm_ = rcp(new AlgPTScotch<Adapter>(this->envConst_,
                                             this->comm_,

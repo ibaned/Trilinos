@@ -214,6 +214,7 @@ template <typename Adapter>
 class AlgorithmFactory {
 public:
   typedef typename Adapter::base_adapter_t base_adapter_t;
+  virtual ~AlgorithmFactory() {}
   virtual RCP<Algorithm<Adapter> >
   build(RCP<const Environment> envConst,
       RCP<const Comm<int> > comm, RCP<const base_adapter_t> baseInputAdapter) = 0;

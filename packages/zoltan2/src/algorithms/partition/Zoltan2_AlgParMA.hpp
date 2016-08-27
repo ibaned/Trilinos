@@ -652,7 +652,7 @@ public:
   build(RCP<const Environment> envConst,
       RCP<const Comm<int> > comm, RCP<const base_adapter_t> baseInputAdapter)
   {
-    return new AlgParMA<Adapter>(envConst, comm, baseInputAdapter);
+    return rcp(new AlgParMA<Adapter>(envConst, comm, baseInputAdapter));
   }
 };
 
