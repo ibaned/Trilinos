@@ -517,7 +517,12 @@ void PartitioningProblem<Adapter>::solve(bool updateInputData)
     //                                             this->coordinateModel_));
     // }
     else {
-      throw std::logic_error("partitioning algorithm not supported");
+      // try delegating to a user-provided factory
+      this->algorithm_ = this->buildAlgorithmFromFactory(algName_);
+      // if the factory system fails, we are out of options
+      if (this->algorithm_.is_null()) {
+        throw std::logic_error("partitioning algorithm not supported");
+      }
     }
   }
   Z2_FORWARD_EXCEPTIONS;
