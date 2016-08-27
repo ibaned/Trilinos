@@ -49,6 +49,10 @@
 #include <Zoltan2_PartitioningSolution.hpp>
 #include <Zoltan2_Util.hpp>
 #include <Zoltan2_TPLTraits.hpp>
+#include <Zoltan2_IdentifierAdapter.hpp>
+#include <Zoltan2_VectorAdapter.hpp>
+#include <Zoltan2_GraphAdapter.hpp>
+#include <Zoltan2_MatrixAdapter.hpp>
 
 //////////////////////////////////////////////////////////////////////////////
 //! \file Zoltan2_AlgParMA.hpp

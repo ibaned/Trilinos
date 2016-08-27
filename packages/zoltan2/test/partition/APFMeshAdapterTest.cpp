@@ -55,6 +55,7 @@
 /**************************************************************/
 
 #include <Zoltan2_APFMeshAdapter.hpp>
+#include <Zoltan2_AlgParMA.hpp>
 #include <Zoltan2_Environment.hpp>
 #include <Zoltan2_PartitioningProblem.hpp>
 #include <Zoltan2_ColoringProblem.hpp>
