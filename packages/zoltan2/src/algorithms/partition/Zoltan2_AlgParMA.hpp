@@ -49,6 +49,10 @@
 #include <Zoltan2_PartitioningSolution.hpp>
 #include <Zoltan2_Util.hpp>
 #include <Zoltan2_TPLTraits.hpp>
+#include <Zoltan2_IdentifierAdapter.hpp>
+#include <Zoltan2_VectorAdapter.hpp>
+#include <Zoltan2_GraphAdapter.hpp>
+#include <Zoltan2_MatrixAdapter.hpp>
 
 //////////////////////////////////////////////////////////////////////////////
 //! \file Zoltan2_AlgParMA.hpp
@@ -641,5 +645,21 @@ void AlgParMA<Adapter>::partition(
 } // namespace Zoltan2
 
 #endif // HAVE_ZOLTAN2_PARMA
+
+namespace Zoltan2 {
+
+template <typename Adapter>
+class ParMAFactory : public AlgorithmFactory<Adapter> {
+public:
+  typedef typename Adapter::base_adapter_t base_adapter_t;
+  virtual RCP<Algorithm<Adapter> >
+  build(RCP<const Environment> envConst,
+      RCP<const Comm<int> > comm, RCP<const base_adapter_t> baseInputAdapter)
+  {
+    return rcp(new AlgParMA<Adapter>(envConst, comm, baseInputAdapter));
+  }
+};
+
+} // namespace Zoltan2
 
 #endif
