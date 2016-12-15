@@ -52,6 +52,13 @@
 #define NOX_SOLVER_LINEAR_H
 
 #include "NOX_Solver_Generic.H"  // for NOX::StatusTest::StatusType
+#include "NOX_Solver_PrePostOperator.H"  // class data element
+#include "NOX_Utils.H"                 // class data element
+
+// Forward declarations
+namespace NOX {
+  class GlobalData;
+}
 
 namespace NOX {
 namespace Solver {
@@ -69,77 +76,54 @@ class Linear {
 
 public:
 
-  //! Constructor
-  Linear();
-
-  //! Destructor
+  Linear(const Teuchos::RCP<NOX::Abstract::Group>& grp,
+         const Teuchos::RCP<Teuchos::ParameterList>& params);
   virtual ~Linear();
-
-  //! Resets the solver and sets a new initial guess.
   virtual void reset(const NOX::Abstract::Vector& initial_guess);
-
-  //! Resets the solver, sets a new status test, and sets a new initial guess.
   virtual void reset(const NOX::Abstract::Vector& initial_guess,
-             const Teuchos::RCP<NOX::StatusTest::Generic>& test) = 0;
+             const Teuchos::RCP<NOX::StatusTest::Generic>& test);
+  virtual NOX::StatusTest::StatusType getStatus();
+  virtual NOX::StatusTest::StatusType step();
+  virtual NOX::StatusTest::StatusType solve();
+  virtual const NOX::Abstract::Group& getSolutionGroup();
+  virtual const NOX::Abstract::Group& getPreviousSolutionGroup();
+  virtual int getNumIterations() const;
+  virtual const Teuchos::ParameterList& getList() const;
 
-  //! Check current convergence and failure status.
-  virtual NOX::StatusTest::StatusType getStatus() = 0;
+protected:
 
-  //! Do one nonlinear step in the iteration sequence and return status.
-  virtual NOX::StatusTest::StatusType step() = 0;
+  //! Print out initialization information and calcuation the RHS.
+  virtual void init();
 
-  /*!
-    \brief Solve the nonlinear problem and return final status.
+protected:
 
-    By "solve", we call iterate() until the NOX::StatusTest value is
-    either NOX::StatusTest::Converged or NOX::StatusTest::Failed.
-  */
-  virtual NOX::StatusTest::StatusType solve() = 0;
+  //! Pointer to the global data object.
+  Teuchos::RCP<NOX::GlobalData> globalDataPtr;
 
-  //! Return a reference to the current solution group.
-  virtual const NOX::Abstract::Group& getSolutionGroup() const = 0;
+  //! Utils
+  Teuchos::RCP<NOX::Utils> utilsPtr;
 
-  //! Return a reference to the previous solution group.
-  virtual const NOX::Abstract::Group& getPreviousSolutionGroup() const = 0;
+  //! Current solution.
+  Teuchos::RCP<NOX::Abstract::Group> solnPtr;
 
-  //! Get number of iterations.
-  virtual int getNumIterations() const = 0;
+  //! Previous solution pointer.
+  Teuchos::RCP<NOX::Abstract::Group> oldSolnPtr;
 
-  //! Return a reference to the solver parameters.
-  virtual const Teuchos::ParameterList& getList() const = 0;
+  //! Input parameters.
+  Teuchos::RCP<Teuchos::ParameterList> paramsPtr;
 
-  //@{ \name PyTrilinos Interface functions (require RCPs)
+  //! Number of nonlinear iterations.
+  int nIter;
 
-  //! Return a RCP to the solution group
-  virtual Teuchos::RCP< const NOX::Abstract::Group > getSolutionGroupPtr() const
-  {
-     TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,
-            "NOX::Generic::Solver::getSolutionGroupPtr() not implemented!");
-     return Teuchos::null;
-  }
+  //! %Status of nonlinear solver.
+  NOX::StatusTest::StatusType status;
 
-  //! Return a RCP to the previous solution group
-  virtual Teuchos::RCP< const NOX::Abstract::Group > getPreviousSolutionGroupPtr() const
-  {
-    TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,
-               "NOX::Generic::Solver::getPreviousSolutionGroupPtr() not implemented!");
-     return Teuchos::null;
-  }
-
-  //! Return a RCP to the solver parameters.
-  virtual Teuchos::RCP< const Teuchos::ParameterList > getListPtr() const
-  {
-    TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,
-               "NOX::Generic::Solver::getListPtr() not implemented!");
-     return Teuchos::null;
-  }
-
-  //@}
+  //! Pointer to a user defined NOX::Abstract::PrePostOperator object.
+  NOX::Solver::PrePostOperator prePostOperator;
 
 };
 } // namespace Solver
 } // namespace NOX
-
 
 #endif
 
