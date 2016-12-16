@@ -48,14 +48,14 @@
 // ************************************************************************
 //@HEADER
 
-#include "NOX_Solver_Linear.H"    // class definition
+#include "NOX_Solver_OneStep.H"    // class definition
 #include "NOX_GlobalData.H"    // class definition
 #include "NOX_Abstract_Group.H"    // class definition
 #include "NOX_Abstract_Group.H"    // class definition
 #include "Teuchos_ParameterList.hpp"  // class data element
 
-NOX::Solver::Linear::
-Linear(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
+NOX::Solver::OneStep::
+OneStep(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
        const Teuchos::RCP<Teuchos::ParameterList>& p) :
   globalDataPtr(Teuchos::rcp(new NOX::GlobalData(p))),
   utilsPtr(globalDataPtr->getUtils()),
@@ -68,7 +68,7 @@ Linear(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
 }
 
 // Protected
-void NOX::Solver::Linear::init()
+void NOX::Solver::OneStep::init()
 {
   // Initialize
   nIter = 0;
@@ -84,14 +84,14 @@ void NOX::Solver::Linear::init()
 
 }
 
-void NOX::Solver::Linear::
+void NOX::Solver::OneStep::
 reset(const NOX::Abstract::Vector& initialGuess)
 {
   solnPtr->setX(initialGuess);
   init();
 }
 
-void NOX::Solver::Linear::
+void NOX::Solver::OneStep::
 reset(const NOX::Abstract::Vector& initialGuess,
       const Teuchos::RCP<NOX::StatusTest::Generic>&)
 {
@@ -99,38 +99,28 @@ reset(const NOX::Abstract::Vector& initialGuess,
   init();
 }
 
-NOX::Solver::Linear::~Linear()
+NOX::Solver::OneStep::~OneStep()
 {
 
 }
 
-NOX::StatusTest::StatusType NOX::Solver::Linear::getStatus()
+NOX::StatusTest::StatusType NOX::Solver::OneStep::getStatus()
 {
   return status;
 }
 
-bool NOX::Solver::Linear::check(NOX::Abstract::Group::ReturnType ret,
+bool NOX::Solver::OneStep::check(NOX::Abstract::Group::ReturnType ret,
     const std::string& task)
 {
   if (ret != NOX::Abstract::Group::Ok) {
     if (utils->isPrintType(Utils::Error))
-      utilsPtr->out() << "NOX::Solver::Linear - Unable to " << task << std::endl;
+      utilsPtr->out() << "NOX::Solver::OneStep - Unable to " << task << std::endl;
     return false;
   }
   return true;
 }
 
-bool NOX::Solver::Linear::computeNewton()
-{
-  if (NOX::Abstract::Group::Ok !=
-      soln.computeNewton(paramsPtr->sublist("Linear Solver")))
-  {
-    if (utils->isPrintType(Utils::Error))
-      utils->err() << "NOX::Solver::Linear - Unable to solve Newton system\n";
-  }
-}
-
-bool NOX::Solver::Linear::try_step()
+bool NOX::Solver::OneStep::try_step()
 {
   if (!check(soln.computeF(), "compute F"))
     return false;
@@ -144,7 +134,7 @@ bool NOX::Solver::Linear::try_step()
   return true;
 }
 
-NOX::StatusTest::StatusType NOX::Solver::Linear::step()
+NOX::StatusTest::StatusType NOX::Solver::OneStep::step()
 {
   prePostOperator.runPreIterate(*this);
 
@@ -169,7 +159,7 @@ NOX::StatusTest::StatusType NOX::Solver::Linear::step()
   return status;
 }
 
-NOX::StatusTest::StatusType NOX::Solver::Linear::solve()
+NOX::StatusTest::StatusType NOX::Solver::OneStep::solve()
 {
   prePostOperator.runPreSolve(*this);
 
@@ -181,48 +171,48 @@ NOX::StatusTest::StatusType NOX::Solver::Linear::solve()
 }
 
 const NOX::Abstract::Group&
-NOX::Solver::Linear::getSolutionGroup() const
+NOX::Solver::OneStep::getSolutionGroup() const
 {
   return *solnPtr;
 }
 
 Teuchos::RCP< const NOX::Abstract::Group >
-NOX::Solver::Linear::getSolutionGroupPtr() const
+NOX::Solver::OneStep::getSolutionGroupPtr() const
 {
   return solnPtr;
 }
 
 const NOX::Abstract::Group&
-NOX::Solver::Linear::getPreviousSolutionGroup() const
+NOX::Solver::OneStep::getPreviousSolutionGroup() const
 {
   return *oldSolnPtr;
 }
 
 Teuchos::RCP< const NOX::Abstract::Group >
-NOX::Solver::Linear::getPreviousSolutionGroupPtr() const
+NOX::Solver::OneStep::getPreviousSolutionGroupPtr() const
 {
   return oldSolnPtr;
 }
 
-int NOX::Solver::Linear::getNumIterations() const
+int NOX::Solver::OneStep::getNumIterations() const
 {
   return nIter;
 }
 
 const Teuchos::ParameterList&
-NOX::Solver::Linear::getList() const
+NOX::Solver::OneStep::getList() const
 {
   return *paramsPtr;
 }
 
 Teuchos::RCP< const Teuchos::ParameterList >
-NOX::Solver::Linear::getListPtr() const
+NOX::Solver::OneStep::getListPtr() const
 {
    return paramsPtr;
 }
 
 // protected
-void NOX::Solver::Linear::printUpdate()
+void NOX::Solver::OneStep::printUpdate()
 {
   if (utilsPtr->isPrintType(NOX::Utils::OuterIteration))
   {

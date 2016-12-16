@@ -58,7 +58,7 @@
 #include "NOX_Solver_InexactTrustRegionBased.H" // Inexact Trust region method
 #include "NOX_Solver_TensorBased.H"      // Tensor method
 #include "NOX_Solver_AndersonAcceleration.H"
-#include "NOX_Solver_Linear.H"
+#include "NOX_Solver_OneStep.H"
 #ifdef HAVE_NOX_THYRA
 #include "NOX_Solver_PseudoTransient.hpp"      // Pseudo-Transient
 #endif
@@ -99,8 +99,8 @@ buildSolver(const Teuchos::RCP<NOX::Abstract::Group>& grp,
     solver = rcp(new TensorBased(grp, tests, params));
   else if (method == "Anderson Accelerated Fixed-Point")
     solver = rcp(new AndersonAcceleration(grp, tests, params));
-  else if (method == "Linear")
-    solver = rcp(new Linear(grp, params));
+  else if (method == "One Step")
+    solver = rcp(new OneStep(grp, params));
 #ifdef HAVE_NOX_THYRA
   else if (method == "Pseudo-Transient")
     solver = rcp(new PseudoTransient(grp, tests, params));
