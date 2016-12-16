@@ -48,14 +48,14 @@
 // ************************************************************************
 //@HEADER
 
-#include "NOX_Solver_OneStep.H"    // class definition
+#include "NOX_Solver_SingleStep.H"    // class definition
 #include "NOX_GlobalData.H"    // class definition
 #include "NOX_Abstract_Group.H"    // class definition
 #include "NOX_Abstract_Group.H"    // class definition
 #include "Teuchos_ParameterList.hpp"  // class data element
 
-NOX::Solver::OneStep::
-OneStep(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
+NOX::Solver::SingleStep::
+SingleStep(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
        const Teuchos::RCP<Teuchos::ParameterList>& p) :
   globalDataPtr(Teuchos::rcp(new NOX::GlobalData(p))),
   utilsPtr(globalDataPtr->getUtils()),
@@ -68,7 +68,7 @@ OneStep(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
 }
 
 // Protected
-void NOX::Solver::OneStep::init()
+void NOX::Solver::SingleStep::init()
 {
   // Initialize
   nIter = 0;
@@ -84,14 +84,14 @@ void NOX::Solver::OneStep::init()
 
 }
 
-void NOX::Solver::OneStep::
+void NOX::Solver::SingleStep::
 reset(const NOX::Abstract::Vector& initialGuess)
 {
   solnPtr->setX(initialGuess);
   init();
 }
 
-void NOX::Solver::OneStep::
+void NOX::Solver::SingleStep::
 reset(const NOX::Abstract::Vector& initialGuess,
       const Teuchos::RCP<NOX::StatusTest::Generic>&)
 {
@@ -99,28 +99,28 @@ reset(const NOX::Abstract::Vector& initialGuess,
   init();
 }
 
-NOX::Solver::OneStep::~OneStep()
+NOX::Solver::SingleStep::~SingleStep()
 {
 
 }
 
-NOX::StatusTest::StatusType NOX::Solver::OneStep::getStatus()
+NOX::StatusTest::StatusType NOX::Solver::SingleStep::getStatus()
 {
   return status;
 }
 
-bool NOX::Solver::OneStep::check(NOX::Abstract::Group::ReturnType ret,
+bool NOX::Solver::SingleStep::check(NOX::Abstract::Group::ReturnType ret,
     const std::string& task)
 {
   if (ret != NOX::Abstract::Group::Ok) {
     if (utils->isPrintType(Utils::Error))
-      utilsPtr->out() << "NOX::Solver::OneStep - Unable to " << task << std::endl;
+      utilsPtr->out() << "NOX::Solver::SingleStep - Unable to " << task << std::endl;
     return false;
   }
   return true;
 }
 
-bool NOX::Solver::OneStep::try_step()
+bool NOX::Solver::SingleStep::try_step()
 {
   if (!check(soln.computeF(), "compute F"))
     return false;
@@ -134,7 +134,7 @@ bool NOX::Solver::OneStep::try_step()
   return true;
 }
 
-NOX::StatusTest::StatusType NOX::Solver::OneStep::step()
+NOX::StatusTest::StatusType NOX::Solver::SingleStep::step()
 {
   prePostOperator.runPreIterate(*this);
 
@@ -159,7 +159,7 @@ NOX::StatusTest::StatusType NOX::Solver::OneStep::step()
   return status;
 }
 
-NOX::StatusTest::StatusType NOX::Solver::OneStep::solve()
+NOX::StatusTest::StatusType NOX::Solver::SingleStep::solve()
 {
   prePostOperator.runPreSolve(*this);
 
@@ -171,48 +171,48 @@ NOX::StatusTest::StatusType NOX::Solver::OneStep::solve()
 }
 
 const NOX::Abstract::Group&
-NOX::Solver::OneStep::getSolutionGroup() const
+NOX::Solver::SingleStep::getSolutionGroup() const
 {
   return *solnPtr;
 }
 
 Teuchos::RCP< const NOX::Abstract::Group >
-NOX::Solver::OneStep::getSolutionGroupPtr() const
+NOX::Solver::SingleStep::getSolutionGroupPtr() const
 {
   return solnPtr;
 }
 
 const NOX::Abstract::Group&
-NOX::Solver::OneStep::getPreviousSolutionGroup() const
+NOX::Solver::SingleStep::getPreviousSolutionGroup() const
 {
   return *oldSolnPtr;
 }
 
 Teuchos::RCP< const NOX::Abstract::Group >
-NOX::Solver::OneStep::getPreviousSolutionGroupPtr() const
+NOX::Solver::SingleStep::getPreviousSolutionGroupPtr() const
 {
   return oldSolnPtr;
 }
 
-int NOX::Solver::OneStep::getNumIterations() const
+int NOX::Solver::SingleStep::getNumIterations() const
 {
   return nIter;
 }
 
 const Teuchos::ParameterList&
-NOX::Solver::OneStep::getList() const
+NOX::Solver::SingleStep::getList() const
 {
   return *paramsPtr;
 }
 
 Teuchos::RCP< const Teuchos::ParameterList >
-NOX::Solver::OneStep::getListPtr() const
+NOX::Solver::SingleStep::getListPtr() const
 {
    return paramsPtr;
 }
 
 // protected
-void NOX::Solver::OneStep::printUpdate()
+void NOX::Solver::SingleStep::printUpdate()
 {
   if (utilsPtr->isPrintType(NOX::Utils::OuterIteration))
   {

@@ -48,8 +48,8 @@
 // ************************************************************************
 //@HEADER
 
-#ifndef NOX_SOLVER_ONESTEP_H
-#define NOX_SOLVER_ONESTEP_H
+#ifndef NOX_SOLVER_SINGLESTEP_H
+#define NOX_SOLVER_SINGLESTEP_H
 
 #include "NOX_Solver_Generic.H"  // for NOX::StatusTest::StatusType
 #include "NOX_Solver_PrePostOperator.H"  // class data element
@@ -72,13 +72,13 @@ namespace Solver {
   In that case, it is convenient to create a NOX::Solver object which requires
   no status tests and simply executes the linear solver.
  */
-class OneStep : public Generic {
+class SingleStep : public Generic {
 
 public:
 
-  OneStep(const Teuchos::RCP<NOX::Abstract::Group>& grp,
+  SingleStep(const Teuchos::RCP<NOX::Abstract::Group>& grp,
          const Teuchos::RCP<Teuchos::ParameterList>& params);
-  virtual ~OneStep();
+  virtual ~SingleStep();
   virtual void reset(const NOX::Abstract::Vector& initial_guess);
   virtual void reset(const NOX::Abstract::Vector& initial_guess,
              const Teuchos::RCP<NOX::StatusTest::Generic>& test);
