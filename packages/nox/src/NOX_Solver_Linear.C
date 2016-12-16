@@ -109,6 +109,41 @@ NOX::StatusTest::StatusType NOX::Solver::Linear::getStatus()
   return status;
 }
 
+bool NOX::Solver::Linear::check(NOX::Abstract::Group::ReturnType ret,
+    const std::string& task)
+{
+  if (ret != NOX::Abstract::Group::Ok) {
+    if (utils->isPrintType(Utils::Error))
+      utilsPtr->out() << "NOX::Solver::Linear - Unable to " << task << std::endl;
+    return false;
+  }
+  return true;
+}
+
+bool NOX::Solver::Linear::computeNewton()
+{
+  if (NOX::Abstract::Group::Ok !=
+      soln.computeNewton(paramsPtr->sublist("Linear Solver")))
+  {
+    if (utils->isPrintType(Utils::Error))
+      utils->err() << "NOX::Solver::Linear - Unable to solve Newton system\n";
+  }
+}
+
+bool NOX::Solver::Linear::try_step()
+{
+  if (!check(soln.computeF(), "compute F"))
+    return false;
+  if (!check(soln.computeJacobian(), "compute Jacobian"))
+    return false;
+  if (!check(soln.computeNewton(paramsPtr->sublist("Linear Solver")),
+             "solve Newton system"))
+    return false;
+  NOX::Abstract::Vector& dir = soln.getNewton();
+  soln.computeX(*oldSolnPtr, dir, 1.0);
+  return true;
+}
+
 NOX::StatusTest::StatusType NOX::Solver::Linear::step()
 {
   prePostOperator.runPreIterate(*this);
@@ -122,14 +157,10 @@ NOX::StatusTest::StatusType NOX::Solver::Linear::step()
   // Copy current soln to the old soln.
   *oldSolnPtr = *solnPtr;
 
-  NOX::Abstract::Group::ReturnType rtype = soln.computeF();
-  if (rtype != NOX::Abstract::Group::Ok)
-  {
-    utilsPtr->out() << "NOX::Solver::Linear::iterate - unable to compute F" << std::endl;
-    status = NOX::StatusTest::Failed;
-  }
-  else
+  if (try_step())
     status = NOX::StatusTest::Converged;
+  else
+    status = NOX::StatusTest::Failed;
 
   prePostOperator.runPostIterate(*this);
 
