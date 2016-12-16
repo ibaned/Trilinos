@@ -49,6 +49,10 @@
 //@HEADER
 
 #include "NOX_Solver_Linear.H"    // class definition
+#include "NOX_GlobalData.H"    // class definition
+#include "NOX_Abstract_Group.H"    // class definition
+#include "NOX_Abstract_Group.H"    // class definition
+#include "Teuchos_ParameterList.hpp"  // class data element
 
 NOX::Solver::Linear::
 Linear(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
@@ -56,11 +60,10 @@ Linear(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
   globalDataPtr(Teuchos::rcp(new NOX::GlobalData(p))),
   utilsPtr(globalDataPtr->getUtils()),
   solnPtr(xGrp),                         // pointer to xGrp
-  oldSolnPtr(xGrp->clone(DeepCopy))      // create via clone
+  oldSolnPtr(xGrp->clone(DeepCopy)),     // create via clone
   paramsPtr(p),
   prePostOperator(utilsPtr, paramsPtr->sublist("Solver Options"))
 {
-  (void) t;
   init();
 }
 
@@ -90,10 +93,9 @@ reset(const NOX::Abstract::Vector& initialGuess)
 
 void NOX::Solver::Linear::
 reset(const NOX::Abstract::Vector& initialGuess,
-      const Teuchos::RCP<NOX::StatusTest::Generic>& t)
+      const Teuchos::RCP<NOX::StatusTest::Generic>&)
 {
   solnPtr->setX(initialGuess);
-  testPtr = t;
   init();
 }
 
@@ -153,10 +155,22 @@ NOX::Solver::Linear::getSolutionGroup() const
   return *solnPtr;
 }
 
+Teuchos::RCP< const NOX::Abstract::Group >
+NOX::Solver::Linear::getSolutionGroupPtr() const
+{
+  return solnPtr;
+}
+
 const NOX::Abstract::Group&
 NOX::Solver::Linear::getPreviousSolutionGroup() const
 {
   return *oldSolnPtr;
+}
+
+Teuchos::RCP< const NOX::Abstract::Group >
+NOX::Solver::Linear::getPreviousSolutionGroupPtr() const
+{
+  return oldSolnPtr;
 }
 
 int NOX::Solver::Linear::getNumIterations() const
@@ -170,7 +184,7 @@ NOX::Solver::Linear::getList() const
   return *paramsPtr;
 }
 
-virtual Teuchos::RCP< const Teuchos::ParameterList >
+Teuchos::RCP< const Teuchos::ParameterList >
 NOX::Solver::Linear::getListPtr() const
 {
    return paramsPtr;
@@ -181,10 +195,8 @@ void NOX::Solver::Linear::printUpdate()
 {
   if (utilsPtr->isPrintType(NOX::Utils::OuterIteration))
   {
-    normSoln = solnPtr->getNormF();
     utilsPtr->out() << "\n" << NOX::Utils::fill(72) << "\n";
     utilsPtr->out() << "-- The \"Nonlinear\" Solver Step -- \n";
-    utilsPtr->out() << "||F|| = " << utilsPtr->sciformat(normSoln);
     if (status == NOX::StatusTest::Converged)
       utilsPtr->out() << " (Converged!)";
     if (status == NOX::StatusTest::Failed)

@@ -72,7 +72,7 @@ namespace Solver {
   In that case, it is convenient to create a NOX::Solver object which requires
   no status tests and simply executes the linear solver.
  */
-class Linear {
+class Linear : public Generic {
 
 public:
 
@@ -85,15 +85,21 @@ public:
   virtual NOX::StatusTest::StatusType getStatus();
   virtual NOX::StatusTest::StatusType step();
   virtual NOX::StatusTest::StatusType solve();
-  virtual const NOX::Abstract::Group& getSolutionGroup();
-  virtual const NOX::Abstract::Group& getPreviousSolutionGroup();
+  virtual const NOX::Abstract::Group& getSolutionGroup() const;
+  virtual Teuchos::RCP< const NOX::Abstract::Group > getSolutionGroupPtr() const;
+  virtual const NOX::Abstract::Group& getPreviousSolutionGroup() const;
+  virtual Teuchos::RCP< const NOX::Abstract::Group > getPreviousSolutionGroupPtr() const;
   virtual int getNumIterations() const;
   virtual const Teuchos::ParameterList& getList() const;
+  virtual Teuchos::RCP< const Teuchos::ParameterList > getListPtr() const;
 
 protected:
 
   //! Print out initialization information and calcuation the RHS.
   virtual void init();
+
+  //! Prints some status information.
+  virtual void printUpdate();
 
 protected:
 
