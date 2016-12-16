@@ -54,6 +54,7 @@
 #include "NOX_Solver_Generic.H"  // for NOX::StatusTest::StatusType
 #include "NOX_Solver_PrePostOperator.H"  // class data element
 #include "NOX_Utils.H"                 // class data element
+#include "NOX_Abstract_Group.H"        // argument type
 
 // Forward declarations
 namespace NOX {
@@ -100,6 +101,12 @@ protected:
 
   //! Prints some status information.
   virtual void printUpdate();
+
+  //! Prints some status information.
+  bool check(Abstract::Group::ReturnType ret, const std::string& task);
+
+  //! Prints some status information.
+  bool try_step();
 
 protected:
 

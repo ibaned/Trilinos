@@ -113,7 +113,7 @@ bool NOX::Solver::SingleStep::check(NOX::Abstract::Group::ReturnType ret,
     const std::string& task)
 {
   if (ret != NOX::Abstract::Group::Ok) {
-    if (utils->isPrintType(Utils::Error))
+    if (utilsPtr->isPrintType(Utils::Error))
       utilsPtr->out() << "NOX::Solver::SingleStep - Unable to " << task << std::endl;
     return false;
   }
@@ -122,24 +122,21 @@ bool NOX::Solver::SingleStep::check(NOX::Abstract::Group::ReturnType ret,
 
 bool NOX::Solver::SingleStep::try_step()
 {
-  if (!check(soln.computeF(), "compute F"))
+  if (!check(solnPtr->computeF(), "compute F"))
     return false;
-  if (!check(soln.computeJacobian(), "compute Jacobian"))
+  if (!check(solnPtr->computeJacobian(), "compute Jacobian"))
     return false;
-  if (!check(soln.computeNewton(paramsPtr->sublist("Linear Solver")),
+  if (!check(solnPtr->computeNewton(paramsPtr->sublist("Linear Solver")),
              "solve Newton system"))
     return false;
-  NOX::Abstract::Vector& dir = soln.getNewton();
-  soln.computeX(*oldSolnPtr, dir, 1.0);
+  const NOX::Abstract::Vector& dir = solnPtr->getNewton();
+  solnPtr->computeX(*oldSolnPtr, dir, 1.0);
   return true;
 }
 
 NOX::StatusTest::StatusType NOX::Solver::SingleStep::step()
 {
   prePostOperator.runPreIterate(*this);
-
-  // Copy pointers into temporary references
-  NOX::Abstract::Group& soln = *solnPtr;
 
   // Update iteration count.
   nIter ++;
