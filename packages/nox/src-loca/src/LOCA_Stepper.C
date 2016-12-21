@@ -811,7 +811,8 @@ LOCA::Stepper::buildConstrainedGroup(
                             constraintsList,
                             grp,
                             constraints,
-                            constraintParamIDs));
+                            constraintParamIDs,
+                            true));
 }
 
 LOCA::Abstract::Iterator::StepStatus

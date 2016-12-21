@@ -130,7 +130,7 @@ namespace LOCA {
        const Teuchos::RCP<LOCA::MultiContinuation::AbstractGroup>& grp,
        const Teuchos::RCP<LOCA::MultiContinuation::ConstraintInterface>& constraints,
        const std::vector<int>& paramIDs,
-       bool skip_dfdp = false);
+       bool skip_dfdp = true);
 
       //! Copy constructor
       ConstrainedGroup(const ConstrainedGroup& source,

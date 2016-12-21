@@ -77,7 +77,7 @@ LOCA::MultiContinuation::ArcLengthGroup::ArcLengthGroup(
   Teuchos::RCP<LOCA::MultiContinuation::ConstraintInterface> cons
     = Teuchos::rcp(new LOCA::MultiContinuation::ArcLengthConstraint(
     globalData, Teuchos::rcp(this, false)));
-  LOCA::MultiContinuation::ExtendedGroup::setConstraints(cons, false);
+  LOCA::MultiContinuation::ExtendedGroup::setConstraints(cons, true);
 
   double theta0 =
     continuationParams->get("Initial Scale Factor", 1.0);
