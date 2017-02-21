@@ -487,9 +487,6 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     Thyra::BelosLinearOpWithSolveFactory<double> >(),
     "Belos", true
     );
-  // std::cout << "***************" << std::endl;
-  // std::cout << "Initialized Belos" << std::endl;
-  // std::cout << "***************" << std::endl;
 #endif
 
 #ifdef HAVE_STRATIMIKOS_AMESOS
@@ -498,9 +495,6 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     Thyra::AmesosLinearOpWithSolveFactory>(),
     "Amesos", true
     );
-  // std::cout << "***************" << std::endl;
-  // std::cout << "Initialized Amesos" << std::endl;
-  // std::cout << "***************" << std::endl;
 #endif
 
 #ifdef HAVE_STRATIMIKOS_AMESOS2
@@ -509,9 +503,6 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     Thyra::Amesos2LinearOpWithSolveFactory<double>>(),
     "Amesos2", true
     );
-  // std::cout << "***************" << std::endl;
-  // std::cout << "Initialized Amesos2" << std::endl;
-  // std::cout << "***************" << std::endl;
 #endif
 
 #if defined(HAVE_STRATIMIKOS_EPETRAEXT) && defined(HAVE_STRATIMIKOS_AZTECOO)
@@ -520,9 +511,6 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     Thyra::AztecOOLinearOpWithSolveFactory>(),
     "AztecOO", true
     );
-  // std::cout << "***************" << std::endl;
-  // std::cout << "Initialized AztecOO" << std::endl;
-  // std::cout << "***************" << std::endl;
 #endif
 
 // #ifdef HAVE_STRATIMIKOS_AMESOS
