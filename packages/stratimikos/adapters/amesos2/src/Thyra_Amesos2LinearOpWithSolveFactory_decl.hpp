@@ -70,7 +70,7 @@ public:
   /** \brief . */
   static const std::string ThrowOnPreconditionerInput_name;
   /** \brief . */
-  static const std::string Amesos_Settings_name;
+  static const std::string Amesos2_Settings_name;
 
   //@}
 

@@ -41,7 +41,8 @@
 // @HEADER
 */
 
-#ifndef SUN_CXX
+#ifndef THYRA_AMESOS2_LINEAR_OP_WITH_SOLVE_FACTORY_HPP
+#define THYRA_AMESOS2_LINEAR_OP_WITH_SOLVE_FACTORY_HPP
 
 #include "Thyra_Amesos2LinearOpWithSolveFactory_decl.hpp"
 
@@ -75,7 +76,7 @@ template<typename Scalar>
 const std::string Amesos2LinearOpWithSolveFactory<Scalar>::ThrowOnPreconditionerInput_name = "Throw on Preconditioner Input";
 
 template<typename Scalar>
-const std::string Amesos2LinearOpWithSolveFactory<Scalar>::Amesos_Settings_name = "Amesos Settings";
+const std::string Amesos2LinearOpWithSolveFactory<Scalar>::Amesos2_Settings_name = "Amesos2 Settings";
 
 // Constructors/initializers/accessors
 
@@ -88,23 +89,18 @@ Amesos2LinearOpWithSolveFactory<Scalar>::~Amesos2LinearOpWithSolveFactory()
       *this->getValidParameters(),0  // Only validate this level for now!
       );
 #endif
-  //std::cout << "Amesos2LinearOpWithSolveFactory<Scalar>::~Amesos2LinearOpWithSolveFactory()" << std::endl;
-
 }
 
 template<typename Scalar>
 Amesos2LinearOpWithSolveFactory<Scalar>::Amesos2LinearOpWithSolveFactory(
-  const Amesos2Stratimikos::ESolverType                            solverType
-  ,const Amesos2Stratimikos::ERefactorizationPolicy                refactorizationPolicy
+  const Amesos2::ESolverType                           solverType
+  ,const Amesos2::ERefactorizationPolicy               refactorizationPolicy
   ,const bool                                          throwOnPrecInput
     )
-  ://epetraFwdOpViewExtractor_(Teuchos::rcp(new EpetraOperatorViewExtractorStd()))
-  //,solverType_(solverType)
-  solverType_(solverType)
+  :solverType_(solverType)
   ,refactorizationPolicy_(refactorizationPolicy)
   ,throwOnPrecInput_(throwOnPrecInput)
 {
-  //std::cout << "Amesos2LinearOpWithSolveFactory<Scalar>::Amesos2LinearOpWithSolveFactory(...)" << std::endl;
 }
 
 // Overridden from LinearOpWithSolveFactoryBase
@@ -114,13 +110,10 @@ bool Amesos2LinearOpWithSolveFactory<Scalar>::isCompatible(
   const LinearOpSourceBase<Scalar> &fwdOpSrc
   ) const
 {
-  //std::cout << " Amesos2LinearOpWithSolveFactory<Scalar>::isCompatible" << std::endl;
-
   Teuchos::RCP<const LinearOpBase<Scalar> >
     fwdOp = fwdOpSrc.getOp();
   Teuchos::RCP< const Tpetra_Operator > tpetraFwdOp;
   tpetraFwdOp = ConverterT::getConstTpetraOperator(fwdOp);
-
   if ( ! dynamic_cast<const Tpetra_CrsMatrix * >(&*tpetraFwdOp) )
     return false;
   return true;
@@ -130,7 +123,6 @@ template<typename Scalar>
 RCP<LinearOpWithSolveBase<Scalar> >
 Amesos2LinearOpWithSolveFactory<Scalar>::createOp() const
 {
-  //std::cout << "Amesos2LinearOpWithSolveFactory<Scalar>::createOp()" << std::endl;
   return Teuchos::rcp(new Amesos2LinearOpWithSolve<Scalar>());
 }
 
@@ -141,12 +133,8 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
   ,const ESupportSolveUse                                          supportSolveUse
   ) const
 {
-  //std::cout << "Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp" << std::endl;
-   THYRA_FUNC_TIME_MONITOR("Stratimikos: Amesos2LOWSF");
-#ifdef TEUCHOS_DEBUG
-   TEUCHOS_TEST_FOR_EXCEPT(Op==NULL);
-#endif
-    
+  THYRA_FUNC_TIME_MONITOR("Stratimikos: Amesos2LOWSF");
+
   TEUCHOS_TEST_FOR_EXCEPT(Op==NULL);
   TEUCHOS_TEST_FOR_EXCEPT(fwdOpSrc.get()==NULL);
   TEUCHOS_TEST_FOR_EXCEPT(fwdOpSrc->getOp().get()==NULL);
@@ -165,29 +153,26 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
   //std::cout << "amesos operator" << std::endl;
   // Get the Amesos2LinearOpWithSolve object
   Amesos2LinearOpWithSolve<Scalar>
-    *amesosOp = &Teuchos::dyn_cast<Amesos2LinearOpWithSolve<Scalar>>(*Op);
+    *amesos2Op = &Teuchos::dyn_cast<Amesos2LinearOpWithSolve<Scalar>>(*Op);
 
   //
   // Determine if we must start over or not
   //
-  bool startOver = ( amesosOp->get_amesosSolver()==Teuchos::null );
+  bool startOver = ( amesos2Op->get_amesos2Solver()==Teuchos::null );
   if(!startOver) 
-    {
-      //std::cout << "Start over 2" << std::endl;
-      RCP< const Tpetra_Operator > tpetraOp = amesosOp->get_amesosSolver()->getMatrix();
-      startOver =
-      	(
-      	  tpetraFwdOp.get() != tpetraOp.get()
-	  // We must start over if the matrix object changes.  This is a
-	  // weakness of Amesos but there is nothing I can do about this right
-	  // now!
-	);
-    }
+  {
+    //std::cout << "Start over 2" << std::endl;
+    RCP< const Tpetra_Operator > tpetraOp = amesos2Op->get_amesos2Solver()->getMatrix();
+    startOver =
+      (
+       tpetraFwdOp.get() != tpetraOp.get()
+       // Assuming that, like Amesos, Amesos2 must start over if the matrix changes
+      );
+  }
   //
-  // Update the amesos solver
+  // Update the amesos2 solver
   //
   if(startOver) {
-    //std::cout << "Start over" << std::endl;
     //
     // This LOWS object has not be initialized yet or is not compatible with the existing
     // 
@@ -195,48 +180,109 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
     //
     // Create the linear problem factory
     Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar> linearsolverfactory;
-      
+
     // Create the concrete solver
     Teuchos::RCP< Trilinos::Details::LinearSolver<Tpetra_MultiVector,Tpetra_Operator,Scalar> > 
-      amesosSolver = linearsolverfactory.getLinearSolver("superludist");
+      amesos2Solver;
+    {
+      THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:InitConstruct",
+        InitConstruct);
+      switch(solverType_) {
+        case Thyra::Amesos2::LAPACK:
+          amesos2Solver = linearsolverfactory.getLinearSolver("lapack");
+          break;
+#ifdef HAVE_AMESOS2_KLU2
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("klu2");
+          break;
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("superlu");
+          break;
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUMT
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("superlumt");
+          break;
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUDIST
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("superludist");
+          break;
+#  endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("pardiso_mkl");
+          break;
+#endif
+#ifdef HAVE_AMESOS2_CHOLMOD
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("cholmod");
+          break;
+#endif
+#ifdef HAVE_AMESOS2_BASKER
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("basker");
+          break;
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+        case Thyra::Amesos2::KLU2:
+          amesos2Solver = linearsolverfactory.getLinearSolver("mumps");
+          break;
+#endif
+          default:
+            TEUCHOS_TEST_FOR_EXCEPTION(
+              true, std::logic_error
+              ,"Error, the solver type ID = " << solverType_ << " is invalid!"
+              );
+      }
+    }
 
     // set 
-    amesosSolver->setMatrix(tpetraFwdOp);
-    
+    amesos2Solver->setMatrix(tpetraFwdOp);
+
     // Do the initial factorization
-    *out << "Performing factorization ...\n";
-    amesosSolver->symbolic();
-    amesosSolver->numeric();
-    
-    
+    {
+      THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:Symbolic", Symbolic);
+      amesos2Solver->symbolic();
+    }
+    {
+      THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:Factor", Factor);
+      amesos2Solver->numeric();
+    }
+
     // Initialize the LOWS object and we are done!
-    amesosOp->initialize(fwdOp,fwdOpSrc,amesosSolver);
+    amesos2Op->initialize(fwdOp,fwdOpSrc,amesos2Solver);
   }
   else {
-    //std::cout << "Start over 3" << std::endl;
     //
     // This LOWS object has already be initialized once so we must just reset
     // the matrix and refactor it.
     //
     // Get non-const pointers to the linear problem and the amesos solver.
-    // These const-casts are just fine since the amesosOp in non-const.
+    // These const-casts are just fine since the amesos2Op in non-const.
     Teuchos::RCP< Trilinos::Details::LinearSolver<Tpetra_MultiVector,Tpetra_Operator,Scalar> >
-      amesosSolver = amesosOp->get_amesosSolver();
-    
+      amesos2Solver = amesos2Op->get_amesos2Solver();
+
     // set 
-    amesosSolver->setMatrix(tpetraFwdOp);
+    amesos2Solver->setMatrix(tpetraFwdOp);
 
     // Do the initial factorization
-    *out << "Performing factorization ...\n";
-    amesosSolver->symbolic();
-    amesosSolver->numeric();
+    if(refactorizationPolicy_ == Amesos2::REPIVOT_ON_REFACTORIZATION) {
+      THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:Symbolic", Symbolic);
+      amesos2Solver->symbolic();
+    }
+    {
+      THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF::Factor", Factor);
+      amesos2Solver->numeric();
+    }
 
     // Initialize the LOWS object and we are done!
-    amesosOp->initialize(fwdOp,fwdOpSrc,amesosSolver);
-
+    amesos2Op->initialize(fwdOp,fwdOpSrc,amesos2Solver);
   }
-  amesosOp->setOStream(this->getOStream());
-  amesosOp->setVerbLevel(this->getVerbLevel());
+  amesos2Op->setOStream(this->getOStream());
+  amesos2Op->setVerbLevel(this->getVerbLevel());
 }
 
 template<typename Scalar>
@@ -291,9 +337,9 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::uninitializeOp(
   TEUCHOS_TEST_FOR_EXCEPT(Op==NULL);
 #endif
   Amesos2LinearOpWithSolve<Scalar>
-    *amesosOp = &Teuchos::dyn_cast<Amesos2LinearOpWithSolve<Scalar>>(*Op);
+    *amesos2Op = &Teuchos::dyn_cast<Amesos2LinearOpWithSolve<Scalar>>(*Op);
   RCP<const LinearOpSourceBase<double> >
-    _fwdOpSrc = amesosOp->extract_fwdOpSrc(); // Will be null if uninitialized!
+    _fwdOpSrc = amesos2Op->extract_fwdOpSrc(); // Will be null if uninitialized!
   if(fwdOpSrc) *fwdOpSrc = _fwdOpSrc; // It is fine if the client does not want this object back!
   if(prec) *prec = Teuchos::null; // We never keep a preconditioner!
   if(approxFwdOpSrc) *approxFwdOpSrc = Teuchos::null; // We never keep an approximate fwd operator!
@@ -306,27 +352,27 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::setParameterList(
   RCP<Teuchos::ParameterList> const& paramList
   )
 {
-  // TEUCHOS_TEST_FOR_EXCEPT(paramList.get()==NULL);
-  // paramList->validateParameters(*this->getValidParameters(),0); // Only validate this level for now!
-  // paramList_ = paramList;
-  // solverType_ =
-  //   Amesos2::solverTypeNameToEnumMap.get<Amesos2::ESolverType>(
-  //     paramList_->get(
-  //       SolverType_name
-  //       ,Amesos2::toString(solverType_)
-  //       )
-  //     ,paramList_->name()+"->"+SolverType_name
-  //     );
-  // refactorizationPolicy_ = 
-  //   Amesos2::refactorizationPolicyNameToEnumMap.get<Amesos2::ERefactorizationPolicy>(
-  //     paramList_->get(
-  //       RefactorizationPolicy_name
-  //       ,Amesos2::toString(refactorizationPolicy_)
-  //       )
-  //     ,paramList_->name()+"->"+RefactorizationPolicy_name
-  //     );
-  // throwOnPrecInput_ = paramList_->get(ThrowOnPreconditionerInput_name,throwOnPrecInput_);
-  // Teuchos::readVerboseObjectSublist(&*paramList_,this);
+  TEUCHOS_TEST_FOR_EXCEPT(paramList.get()==NULL);
+  paramList->validateParameters(*this->getValidParameters(),0); // Only validate this level for now!
+  paramList_ = paramList;
+  solverType_ =
+    Amesos2::solverTypeNameToEnumMap.get<Amesos2::ESolverType>(
+      paramList_->get(
+        SolverType_name
+        ,Amesos2::toString(solverType_)
+        )
+      ,paramList_->name()+"->"+SolverType_name
+      );
+  refactorizationPolicy_ = 
+    Amesos2::refactorizationPolicyNameToEnumMap.get<Amesos2::ERefactorizationPolicy>(
+      paramList_->get(
+        RefactorizationPolicy_name
+        ,Amesos2::toString(refactorizationPolicy_)
+        )
+      ,paramList_->name()+"->"+RefactorizationPolicy_name
+      );
+  throwOnPrecInput_ = paramList_->get(ThrowOnPreconditionerInput_name,throwOnPrecInput_);
+  Teuchos::readVerboseObjectSublist(&*paramList_,this);
 }
 
 template<typename Scalar>
@@ -382,11 +428,14 @@ Amesos2LinearOpWithSolveFactory<Scalar>::generateAndGetValidParameters()
     validParamList = Teuchos::rcp(new Teuchos::ParameterList("Amesos2"));
     validParamList->set(
       SolverType_name
-      ,Amesos2Stratimikos::toString(Amesos2Stratimikos::SuperLU)
+#ifdef HAVE_AMESOS2_KLU2
+      ,Amesos2::toString(Amesos2::KLU2)
+#else
+      ,Amesos2::toString(Amesos2::LAPACK)
+#endif
       );
-    validParamList->set(RefactorizationPolicy_name,Amesos2Stratimikos::toString(Amesos2Stratimikos::REPIVOT_ON_REFACTORIZATION));
+    validParamList->set(RefactorizationPolicy_name,Amesos2::toString(Amesos2::REPIVOT_ON_REFACTORIZATION));
     validParamList->set(ThrowOnPreconditionerInput_name,bool(true));
-    // validParamList->sublist(Amesos_Settings_name).setParameters(::Amesos2Stratimikos::GetValidParameters());
     Teuchos::setupVerboseObjectSublist(&*validParamList);
   }
   return validParamList;
@@ -394,4 +443,4 @@ Amesos2LinearOpWithSolveFactory<Scalar>::generateAndGetValidParameters()
 
 } // namespace Thyra
 
-#endif // SUN_CXX
+#endif // THYRA_AMESOS2_LINEAR_OP_WITH_SOLVE_FACTORY_HPP
