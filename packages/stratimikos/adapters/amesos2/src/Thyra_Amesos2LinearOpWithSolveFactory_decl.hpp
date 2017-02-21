@@ -83,32 +83,22 @@ public:
   /** \brief Constructor which sets the defaults.
    */
   Amesos2LinearOpWithSolveFactory(
-    const Amesos2Stratimikos::ESolverType                 solverType  = Amesos2Stratimikos::SuperLU
-    ,const Amesos2Stratimikos::ERefactorizationPolicy     refactorizationPolicy  = Amesos2Stratimikos::REPIVOT_ON_REFACTORIZATION
-    ,const bool                                           throwOnPrecInput       = true
+    const Amesos2::ESolverType                 solverType
+#ifdef HAVE_AMESOS2_KLU2
+                                                                      = Amesos2::KLU2,
+#else                                                                 
+                                                                      = Amesos2::LAPACK,
+#endif
+    ,const Amesos2::ERefactorizationPolicy     refactorizationPolicy  = Amesos2::REPIVOT_ON_REFACTORIZATION
+    ,const bool                                throwOnPrecInput       = true
     );
     
-  /** \brief Set the strategy object used to extract an
-   * <tt>Epetra_Operator</tt> view of an input forward operator.
-   *
-   * This view will then be dynamically casted to <tt>Epetra_RowMatrix</tt>
-   * before it is used.
-   *
-   * The default implementation used is <tt>EpetraOperatorViewExtractorBase</tt>.
-   */
-  //STANDARD_COMPOSITION_MEMBERS( EpetraOperatorViewExtractorBase, epetraFwdOpViewExtractor );
-
   //@}
 
   /** @name Overridden public functions from LinearOpWithSolveFactoryBase */
   //@{
 
-  // This will be used to extract the Tpetra operator that later will be cast into a Tpetra_CrsMatrix
-  //typedef Thyra::TpetraOperatorVectorExtraction<Scalar> converterT;
-
-  /** \brief Returns true if <tt>dynamic_cast<const
-   * EpetraLinearOpBase*>(fwdOpSrc)!=NULL</tt> .
-   */
+  /** \brief . */
   bool isCompatible( const LinearOpSourceBase<Scalar> &fwdOpSrc ) const;
 
   /** \brief . */
@@ -184,10 +174,10 @@ private:
   // /////////////////////////
   // Private data members
 
-  Amesos2Stratimikos::ESolverType                             solverType_;
-  Amesos2Stratimikos::ERefactorizationPolicy                  refactorizationPolicy_;
-  bool                                            throwOnPrecInput_;
-  Teuchos::RCP<Teuchos::ParameterList>    paramList_;
+  Amesos2::ESolverType                  solverType_;
+  Amesos2::ERefactorizationPolicy       refactorizationPolicy_;
+  bool                                  throwOnPrecInput_;
+  Teuchos::RCP<Teuchos::ParameterList>  paramList_;
 
   // /////////////////////////
   // Private member functions
