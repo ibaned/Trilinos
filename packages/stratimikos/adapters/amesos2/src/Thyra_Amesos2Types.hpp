@@ -44,52 +44,102 @@
 #ifndef THYRA_AMESOS2_TYPES_HPP
 #define THYRA_AMESOS2_TYPES_HPP
 
-//#include "Amesos_ConfigDefs.h"
 #include "Amesos2_config.h"
 #include "Teuchos_StringToIntMap.hpp"
 
 namespace Thyra {
 
-namespace Amesos2Stratimikos {
+namespace Amesos2 {
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
-  enum ESolverType {SuperLU};
+enum ESolverType {
+  LAPACK
+#ifdef HAVE_AMESOS2_KLU2
+  ,KLU2
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+  ,SUPERLU
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUMT
+  ,SUPERLUMT
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUDIST
+  ,SUPERLUDIST
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+  ,PARDISO_MKL
+#endif
+#ifdef HAVE_AMESOS2_CHOLMOD
+  ,CHOLMOD
+#endif
+#ifdef HAVE_AMESOS2_BASKER
+  ,BASKER
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+  ,MUMPS
+#endif
+}; 
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 const int numSolverTypes = 1;
+#ifdef HAVE_AMESOS2_KLU2
++1
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
++1
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUMT
++1
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUDIST
++1
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
++1
+#endif
+#ifdef HAVE_AMESOS2_CHOLMOD
++1
+#endif
+#ifdef HAVE_AMESOS2_BASKER
++1
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
++1
+#endif
+; 
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 extern const ESolverType solverTypeValues[numSolverTypes];
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 extern const char* solverTypeNames[numSolverTypes];
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 extern const bool supportsUnsymmetric[numSolverTypes];
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 inline const char* toString(const ESolverType solverType)
 { return solverTypeNames[solverType]; }
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 extern Teuchos::StringToIntMap solverTypeNameToEnumMap;
 
 /** \brief The policy used on refactoring a matrix.
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 enum ERefactorizationPolicy {
   REPIVOT_ON_REFACTORIZATION     ///< Completely new pivoting will be used on refactorizations!
@@ -97,12 +147,12 @@ enum ERefactorizationPolicy {
 };
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 const int numRefactorizationPolices = 2;
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 extern const ERefactorizationPolicy refactorizationPolicyValues[numRefactorizationPolices];
 
@@ -110,13 +160,13 @@ extern const ERefactorizationPolicy refactorizationPolicyValues[numRefactorizati
 extern const char* refactorizationPolicyNames[numRefactorizationPolices];
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 inline const char* toString(const ERefactorizationPolicy refactorizationPolicy)
 { return refactorizationPolicyNames[refactorizationPolicy]; }
 
 /** \brief .
-\ingroup Amesos_Thyra_adapters_grp
+\ingroup Amesos2_Thyra_adapters_grp
 */
 extern Teuchos::StringToIntMap refactorizationPolicyNameToEnumMap;
 
