@@ -513,20 +513,15 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     );
 #endif
 
-// #ifdef HAVE_STRATIMIKOS_AMESOS
-//   if (Teuchos::GlobalMPISession::getNProc() == 1) {
-//     setDefaultLinearSolveStrategyFactoryName("Amesos");
-//   }
-// #endif
-
-#ifdef HAVE_STRATIMIKOS_AMESOS2
+#if defined( HAVE_STRATIMIKOS_AMESOS2 )
   if (Teuchos::GlobalMPISession::getNProc() == 1) {
     setDefaultLinearSolveStrategyFactoryName("Amesos2");
   }
+#elif defined( HAVE_STRATIMIKOS_AMESOS )
+  if (Teuchos::GlobalMPISession::getNProc() == 1) {
+    setDefaultLinearSolveStrategyFactoryName("Amesos");
+  }
 #endif
-
-  // Note: ABove, the last LOWSF object set will be the default unless we are
-  // on multiple processors!
 
   //
   // Preconditioners
