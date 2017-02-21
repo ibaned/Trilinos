@@ -47,11 +47,8 @@
 #include "Thyra_LinearOpWithSolveFactoryBase.hpp"
 #include "Thyra_TpetraThyraWrappers.hpp"
 #include "Thyra_Amesos2Types.hpp"
-#include "Amesos2_DataTypes.hpp"
-//#include "Amesos_BaseSolver.h"
 #include "Amesos2.hpp"
 #include "Amesos2_Version.hpp"
-//#include "Thyra_EpetraOperatorViewExtractorBase.hpp"
 #include "Teuchos_StandardMemberCompositionMacros.hpp"
 #include "Teuchos_StandardCompositionMacros.hpp"
 #include "Trilinos_Details_LinearSolver.hpp"
@@ -59,35 +56,9 @@
 
 namespace Thyra {
 
-/** \brief Concrete <tt>LinearOpWithSolveFactoryBase</tt> adapter subclass that uses
- * Amesos direct solvers.
- *
- * This class creates objects of type <tt>AmesosLinearOpWithSolve</tt>
- * (through the <tt>LinearOpWithSolveBase</tt> interface) which can then be
- * used to solve for linear systems.  The <tt>%AmesosLinearOpWithSolve</tt>
- * objects created and initialized by this object are completely independent
- * from <tt>*this</tt>.  This allows for multiple
- * <tt>%AmesosLinearOpWithSolve</tt> objects to be created and maintained
- * simultaneously and for <tt>*this</tt> factory object to be destroyed
- * without affecting the created <tt>%AmesosLinearOpWithSolve</tt> objects.
- *
- * ToDo: Mention parameter list usage.
- *
- * <b>Development notes:</b> This class has been designed to allow for "smart"
- * <tt>EpetraLinearOpBase</tt> subclasses that can create an
- * <tt>Epetra_Operator</tt> view on command where the underlying storage may
- * not be an <tt>Epetra</tt> object.  However, the current implementation of
- * at least some of the <tt>Amesos_BaseSolver</tt> subclasses do not allow the
- * <tt>%Epetra_Operator</tt> object to change after construction.  Therefore,
- * this current flawed implementation requires that every call to the
- * <tt>EpetraLinearOpBase::getEpetraOpView()</tt> function return the same
- * <tt>%Epetra_Operator</tt> object.
- *
- * \ingroup Amesos_Thyra_adapters_grp
- */
-  template<typename Scalar>
-  class Amesos2LinearOpWithSolveFactory : public LinearOpWithSolveFactoryBase<Scalar> {
-  public:
+template<typename Scalar>
+class Amesos2LinearOpWithSolveFactory : public LinearOpWithSolveFactoryBase<Scalar> {
+public:
 
   /** \name Parameter names for Paramter List */
   //@{
@@ -103,12 +74,6 @@ namespace Thyra {
 
   //@}
 
-  // typedef Tpetra::CrsMatrix<Scalar> MAT;
-  // typedef Tpetra::MultiVector<Scalar> MV;
-  // typedef Tpetra::Operator<Scalar> OP;
-  // typedef long long int GO;
-  // typedef int LO;
-
   /** \name Constructors/initializers/accessors */
   //@{
 
@@ -120,7 +85,7 @@ namespace Thyra {
   Amesos2LinearOpWithSolveFactory(
     const Amesos2Stratimikos::ESolverType                 solverType  = Amesos2Stratimikos::SuperLU
     ,const Amesos2Stratimikos::ERefactorizationPolicy     refactorizationPolicy  = Amesos2Stratimikos::REPIVOT_ON_REFACTORIZATION
-    ,const bool                               throwOnPrecInput       = true
+    ,const bool                                           throwOnPrecInput       = true
     );
     
   /** \brief Set the strategy object used to extract an
