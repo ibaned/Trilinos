@@ -75,6 +75,18 @@ template<typename Scalar>
 class Amesos2LinearOpWithSolve: virtual public LinearOpWithSolveBase<Scalar>
 {
 public:
+  using LO = int;
+#ifdef HAVE_TPETRA_INST_INT_LONG_LONG
+  using GO = long long;
+#else
+  using GO = int;
+#endif
+  using MAT = Tpetra::CrsMatrix<Scalar, LO, GO>;
+  using Op = Tpetra::Operator<Scalar, LO, GO>;
+  using MV = Tpetra::MultiVector<Scalar, LO, GO>;
+  using Solver = Amesos2::Solver<MAT, MV>;
+  using ConverterT = TpetraOperatorVectorExtraction<Scalar, LO, GO>;
+
   /** @name Constructors/initializers/accessors */
   //@{
 
@@ -85,8 +97,7 @@ public:
   Amesos2LinearOpWithSolve(
     const Teuchos::RCP<const LinearOpBase<Scalar> > &fwdOp,
     const Teuchos::RCP<const LinearOpSourceBase<Scalar> > &fwdOpSrc,
-    const Teuchos::RCP<Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar>> &tpetraLP,
-    const Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > > &amesosSolver,
+    const Teuchos::RCP< Solver > &amesos2Solver,
     const EOpTransp amesos2SolverTransp,
     const Scalar amesos2SolverScalar
     );
@@ -94,7 +105,7 @@ public:
   void initialize(
     const Teuchos::RCP<const LinearOpBase<Scalar> > &fwdOp,
     const Teuchos::RCP<const LinearOpSourceBase<Scalar> > &fwdOpSrc,
-    const Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > > &amesosSolver
+    const Teuchos::RCP< Solver > &amesos2Solver
     );
 
   /** \brief Extract the <tt>LinearOpSourceBase<double></tt> object so that it can be modified.
@@ -113,12 +124,8 @@ public:
   Teuchos::RCP<const LinearOpSourceBase<Scalar> > get_fwdOpSrc() const;
 
   // /** \brief . */
-  Teuchos::RCP< Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar> > 
+  Teuchos::RCP< Amesos2::Details::LinearSolverFactory<MV,Op,Scalar> > 
   get_linearSolverFactory() const;
-
-  // /** \brief . */
-  Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > >
-  get_amesos2Solver() const;
 
   /** \brief . */
   EOpTransp get_amesos2SolverTransp() const;
@@ -131,10 +138,7 @@ public:
   void uninitialize(
     Teuchos::RCP<const LinearOpBase<Scalar> > *fwdOp = NULL,
     Teuchos::RCP<const LinearOpSourceBase<Scalar> > *fwdOpSrc = NULL,
-    Teuchos::RCP<Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar>> *tpetraLP = NULL,
-    Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > > *amesosSolver = NULL,
-    // Teuchos::RCP<Epetra_LinearProblem> *epetraLP = NULL,
-    // Teuchos::RCP<Amesos_BaseSolver> *amesosSolver = NULL,
+    Teuchos::RCP< Solver > *amesosSolver = NULL,
     EOpTransp *amesos2SolverTransp = NULL,
     Scalar *amesos2SolverScalar = NULL
     );
@@ -199,8 +203,7 @@ private:
 
   Teuchos::RCP<const LinearOpBase<Scalar> > fwdOp_;
   Teuchos::RCP<const LinearOpSourceBase<Scalar> > fwdOpSrc_;
-  Teuchos::RCP< Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar> > linearsolverfactory_;
-  Teuchos::RCP< Trilinos::Details::LinearSolver<Tpetra_MultiVector,Tpetra_Operator,Scalar> > amesos2Solver_;
+  Teuchos::RCP< Solver > amesos2Solver_;
   EOpTransp amesos2SolverTransp_;
   Scalar amesos2SolverScalar_;
 
@@ -225,22 +228,6 @@ Teuchos::RCP<const LinearOpSourceBase<Scalar> >
 Amesos2LinearOpWithSolve<Scalar>::get_fwdOpSrc() const
 {
   return fwdOpSrc_;
-}
-
-template<typename Scalar>
-inline
-Teuchos::RCP< Amesos2::Details::LinearSolverFactory< Tpetra_MultiVector,Tpetra_Operator, Scalar > >
-Amesos2LinearOpWithSolve<Scalar>::get_linearSolverFactory() const
-{
-  return linearsolverfactory_;
-}
-
-template<typename Scalar>
-inline
-Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > >
-Amesos2LinearOpWithSolve<Scalar>::get_amesos2Solver() const
-{
-  return amesos2Solver_;
 }
 
 template<typename Scalar>

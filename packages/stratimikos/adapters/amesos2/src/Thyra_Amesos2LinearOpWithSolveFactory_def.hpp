@@ -149,7 +149,8 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
   //
   RCP< const Tpetra_Operator > tpetraFwdOp;
   //std::cout << "Tpetra operator" << std::endl;
-  tpetraFwdOp = ConverterT::getConstTpetraOperator(fwdOp);
+  auto tpetraFwdOp = ConverterT::getConstTpetraOperator(fwdOp);
+  auto tpetraCrsMat = Teuchos::rcp_cast<MAT>(tpetraFwdOp);
   //std::cout << "amesos operator" << std::endl;
   // Get the Amesos2LinearOpWithSolve object
   Amesos2LinearOpWithSolve<Scalar>
@@ -189,46 +190,46 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
         InitConstruct);
       switch(solverType_) {
         case Thyra::Amesos2::LAPACK:
-          amesos2Solver = linearsolverfactory.getLinearSolver("lapack");
+          amesos2Solver = Amesos2::create<MAT,MV>("lapack", tpetraCrsMat);
           break;
 #ifdef HAVE_AMESOS2_KLU2
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("klu2");
+          amesos2Solver = Amesos2::create<MAT,MV>("klu2", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("superlu");
+          amesos2Solver = Amesos2::create<MAT,MV>("superlu", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUMT
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("superlumt");
+          amesos2Solver = Amesos2::create<MAT,MV>("superlumt", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUDIST
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("superludist");
+          amesos2Solver = Amesos2::create<MAT,MV>("superludist", tpetraCrsMat);
           break;
 #  endif
 #ifdef HAVE_AMESOS2_PARDISO_MKL
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("pardiso_mkl");
+          amesos2Solver = Amesos2::create<MAT,MV>("pardiso_mkl", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_CHOLMOD
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("cholmod");
+          amesos2Solver = Amesos2::create<MAT,MV>("cholmod", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_BASKER
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("basker");
+          amesos2Solver = Amesos2::create<MAT,MV>("basker", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_MUMPS
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = linearsolverfactory.getLinearSolver("mumps");
+          amesos2Solver = Amesos2::create<MAT,MV>("mumps", tpetraCrsMat);
           break;
 #endif
           default:
@@ -239,17 +240,14 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
       }
     }
 
-    // set 
-    amesos2Solver->setMatrix(tpetraFwdOp);
-
     // Do the initial factorization
     {
       THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:Symbolic", Symbolic);
-      amesos2Solver->symbolic();
+      amesos2Solver->symbolicFactorization();
     }
     {
       THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:Factor", Factor);
-      amesos2Solver->numeric();
+      amesos2Solver->numericFactorization();
     }
 
     // Initialize the LOWS object and we are done!

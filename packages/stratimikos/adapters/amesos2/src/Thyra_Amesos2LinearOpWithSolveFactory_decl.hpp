@@ -59,6 +59,7 @@ namespace Thyra {
 template<typename Scalar>
 class Amesos2LinearOpWithSolveFactory : public LinearOpWithSolveFactoryBase<Scalar> {
 public:
+  using ConverterT = typename Amesos2LinearOpWithSolve<Scalar>::ConverterT;
 
   /** \name Parameter names for Paramter List */
   //@{
@@ -85,9 +86,9 @@ public:
   Amesos2LinearOpWithSolveFactory(
     const Amesos2::ESolverType                 solverType
 #ifdef HAVE_AMESOS2_KLU2
-                                                                      = Amesos2::KLU2,
+                                                                      = Amesos2::KLU2
 #else                                                                 
-                                                                      = Amesos2::LAPACK,
+                                                                      = Amesos2::LAPACK
 #endif
     ,const Amesos2::ERefactorizationPolicy     refactorizationPolicy  = Amesos2::REPIVOT_ON_REFACTORIZATION
     ,const bool                                throwOnPrecInput       = true

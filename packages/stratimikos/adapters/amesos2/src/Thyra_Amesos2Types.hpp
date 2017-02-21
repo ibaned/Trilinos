@@ -85,7 +85,7 @@ enum ESolverType {
 /** \brief .
 \ingroup Amesos2_Thyra_adapters_grp
 */
-const int numSolverTypes = 1;
+const int numSolverTypes = 1
 #ifdef HAVE_AMESOS2_KLU2
 +1
 #endif

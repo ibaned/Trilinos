@@ -63,8 +63,7 @@ template<typename Scalar>
 Amesos2LinearOpWithSolve<Scalar>::Amesos2LinearOpWithSolve(
   const Teuchos::RCP<const LinearOpBase<Scalar> > &fwdOp,
   const Teuchos::RCP<const LinearOpSourceBase<Scalar> > &fwdOpSrc,
-  const Teuchos::RCP<Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar>> &tpetraLP,
-  const Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > > &amesos2Solver,
+  const Teuchos::RCP< Solver > &amesos2Solver,
   const EOpTransp amesos2SolverTransp,
   const Scalar amesos2SolverScalar
   )
@@ -76,7 +75,7 @@ template<typename Scalar>
 void Amesos2LinearOpWithSolve<Scalar>::initialize(
   const Teuchos::RCP<const LinearOpBase<Scalar> > &fwdOp,
   const Teuchos::RCP<const LinearOpSourceBase<Scalar> > &fwdOpSrc,
-  const Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > > &amesos2Solver
+  const Teuchos::RCP< Solver > &amesos2Solver
   )
 {
   fwdOp_ = fwdOp;
@@ -102,22 +101,19 @@ template<typename Scalar>
 void Amesos2LinearOpWithSolve<Scalar>::uninitialize(
   Teuchos::RCP<const LinearOpBase<Scalar> > *fwdOp,
   Teuchos::RCP<const LinearOpSourceBase<Scalar> > *fwdOpSrc,
-  Teuchos::RCP<Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar>> *tpetraLP,
-  Teuchos::RCP< Trilinos::Details::LinearSolver< Tpetra_MultiVector,Tpetra_Operator, Scalar > > *amesos2Solver,
+  Teuchos::RCP< Solver > *amesos2Solver,
   EOpTransp *amesos2SolverTransp,
   Scalar *amesos2SolverScalar
   )
 {
   if(fwdOp) *fwdOp = fwdOp_;
   if(fwdOpSrc) *fwdOpSrc = fwdOpSrc_;
-  if(tpetraLP) *tpetraLP = linearsolverfactory_;
   if(amesos2Solver) *amesos2Solver = amesos2Solver_;
   if(amesos2SolverTransp) *amesos2SolverTransp = amesos2SolverTransp_;
   if(amesos2SolverScalar) *amesos2SolverScalar = amesos2SolverScalar_;
 
   fwdOp_ = Teuchos::null;
   fwdOpSrc_ = Teuchos::null;
-  linearsolverfactory_ = Teuchos::null;
   amesos2Solver_ = Teuchos::null;
   amesos2SolverTransp_ = NOTRANS;
   amesos2SolverScalar_ = 0.0;
@@ -261,11 +257,9 @@ Amesos2LinearOpWithSolve<Scalar>::solveImpl(
   const Ptr<const SolveCriteria<Scalar> > solveCriteria
   ) const
 {
-  Teuchos::RCP< Thyra::MultiVectorBase<Scalar> > Bptr = Teuchos::rcp_const_cast< Thyra::MultiVectorBase<Scalar> >(Teuchos::rcpFromRef(B));
+  auto Btpetra = ConverterT::getConstTpetraMultiVector(Teuchos::rcpFromRef(B));
 
-  Teuchos::RCP< Tpetra_MultiVector > Btpetra = ConverterT::getTpetraMultiVector(Bptr);
-
-  Teuchos::RCP< Tpetra_MultiVector > Xtpetra = ConverterT::getTpetraMultiVector(Teuchos::rcpFromPtr(X));
+  auto Xtpetra = ConverterT::getConstTpetraMultiVector(Teuchos::rcpFromPtr(X));
 
   Teuchos::RCP<Teuchos::FancyOStream> out = this->getOStream();
   Teuchos::EVerbosityLevel verbLevel = this->getVerbLevel();
@@ -274,7 +268,7 @@ Amesos2LinearOpWithSolve<Scalar>::solveImpl(
     *out << "\nSolving block system using Amesos2 solver "
          << typeName(*amesos2Solver_) << " ...\n\n";
 
-  amesos2Solver_->solve(*Xtpetra,*Btpetra);
+  amesos2Solver_->solve(Teuchos::ptr(*Xtpetra), Teuchos::ptr(*Btpetra));
 
   SolveStatus<Scalar> solveStatus;
   solveStatus.solveStatus = SOLVE_STATUS_CONVERGED; 
