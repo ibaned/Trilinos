@@ -53,6 +53,7 @@
 #include "Teuchos_StandardCompositionMacros.hpp"
 #include "Trilinos_Details_LinearSolver.hpp"
 #include "Trilinos_Details_LinearSolverFactory.hpp"
+#include "Thyra_Amesos2LinearOpWithSolve_decl.hpp"
 
 namespace Thyra {
 
@@ -60,6 +61,9 @@ template<typename Scalar>
 class Amesos2LinearOpWithSolveFactory : public LinearOpWithSolveFactoryBase<Scalar> {
 public:
   using ConverterT = typename Amesos2LinearOpWithSolve<Scalar>::ConverterT;
+  using MAT = typename Amesos2LinearOpWithSolve<Scalar>::MAT;
+  using MV = typename Amesos2LinearOpWithSolve<Scalar>::MV;
+  using Solver = typename Amesos2LinearOpWithSolve<Scalar>::Solver;
 
   /** \name Parameter names for Paramter List */
   //@{

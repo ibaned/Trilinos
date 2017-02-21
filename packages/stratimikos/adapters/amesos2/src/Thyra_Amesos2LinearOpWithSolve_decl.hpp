@@ -57,10 +57,8 @@
 #include "Thyra_LinearOpTester.hpp"
 
 #include "Amesos2.hpp"
-#include "Amesos2_Details_LinearSolverFactory.hpp"
 #include "Amesos2_Version.hpp"
-#include "Trilinos_Details_LinearSolver.hpp"
-#include "Trilinos_Details_LinearSolverFactory.hpp"
+#include "Amesos2_Solver.hpp"
 
 namespace Thyra {
 
@@ -84,7 +82,7 @@ public:
   using MAT = Tpetra::CrsMatrix<Scalar, LO, GO>;
   using Op = Tpetra::Operator<Scalar, LO, GO>;
   using MV = Tpetra::MultiVector<Scalar, LO, GO>;
-  using Solver = Amesos2::Solver<MAT, MV>;
+  using Solver = ::Amesos2::Solver<MAT, MV>;
   using ConverterT = TpetraOperatorVectorExtraction<Scalar, LO, GO>;
 
   /** @name Constructors/initializers/accessors */
@@ -121,11 +119,10 @@ public:
   Teuchos::RCP<const LinearOpBase<Scalar> > get_fwdOp() const;
 
   /** \brief . */
-  Teuchos::RCP<const LinearOpSourceBase<Scalar> > get_fwdOpSrc() const;
+  Teuchos::RCP<const Solver > get_amesos2Solver() const;
 
-  // /** \brief . */
-  Teuchos::RCP< Amesos2::Details::LinearSolverFactory<MV,Op,Scalar> > 
-  get_linearSolverFactory() const;
+  /** \brief . */
+  Teuchos::RCP<const LinearOpSourceBase<Scalar> > get_fwdOpSrc() const;
 
   /** \brief . */
   EOpTransp get_amesos2SolverTransp() const;
@@ -220,6 +217,14 @@ Teuchos::RCP<const LinearOpBase<Scalar> >
 Amesos2LinearOpWithSolve<Scalar>::get_fwdOp() const
 {
   return fwdOp_;
+}
+
+template<typename Scalar>
+inline
+Teuchos::RCP<const typename Amesos2LinearOpWithSolve<Scalar>::Solver>
+Amesos2LinearOpWithSolve<Scalar>::get_amesos2Solver() const
+{
+  return amesos2Solver_;
 }
 
 template<typename Scalar>

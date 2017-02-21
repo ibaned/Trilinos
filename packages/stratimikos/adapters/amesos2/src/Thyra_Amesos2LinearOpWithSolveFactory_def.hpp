@@ -50,6 +50,7 @@
 #include "Amesos2.hpp"
 #include "Amesos2_Details_LinearSolverFactory.hpp"
 #include "Amesos2_Version.hpp"
+#include "Amesos2_Factory.hpp"
 #include "Thyra_TpetraLinearOp.hpp"
 #include "Thyra_TpetraThyraWrappers.hpp"
 #include "Thyra_DefaultDiagonalLinearOp.hpp"
@@ -112,9 +113,8 @@ bool Amesos2LinearOpWithSolveFactory<Scalar>::isCompatible(
 {
   Teuchos::RCP<const LinearOpBase<Scalar> >
     fwdOp = fwdOpSrc.getOp();
-  Teuchos::RCP< const Tpetra_Operator > tpetraFwdOp;
-  tpetraFwdOp = ConverterT::getConstTpetraOperator(fwdOp);
-  if ( ! dynamic_cast<const Tpetra_CrsMatrix * >(&*tpetraFwdOp) )
+  auto tpetraFwdOp = ConverterT::getConstTpetraOperator(fwdOp);
+  if ( ! dynamic_cast<const MAT * >(&*tpetraFwdOp) )
     return false;
   return true;
 }
@@ -143,15 +143,11 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
   Teuchos::RCP<Teuchos::FancyOStream> 
     out = Teuchos::VerboseObjectBase::getDefaultOStream();
 
-  //std::cout << "Unwrap TpetraOperator" << std::endl;
   //
   // Unwrap and get the forward Tpetra::Operator object
   //
-  RCP< const Tpetra_Operator > tpetraFwdOp;
-  //std::cout << "Tpetra operator" << std::endl;
   auto tpetraFwdOp = ConverterT::getConstTpetraOperator(fwdOp);
-  auto tpetraCrsMat = Teuchos::rcp_cast<MAT>(tpetraFwdOp);
-  //std::cout << "amesos operator" << std::endl;
+  auto tpetraCrsMat = Teuchos::rcp_dynamic_cast<const MAT>(tpetraFwdOp);
   // Get the Amesos2LinearOpWithSolve object
   Amesos2LinearOpWithSolve<Scalar>
     *amesos2Op = &Teuchos::dyn_cast<Amesos2LinearOpWithSolve<Scalar>>(*Op);
@@ -162,8 +158,7 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
   bool startOver = ( amesos2Op->get_amesos2Solver()==Teuchos::null );
   if(!startOver) 
   {
-    //std::cout << "Start over 2" << std::endl;
-    RCP< const Tpetra_Operator > tpetraOp = amesos2Op->get_amesos2Solver()->getMatrix();
+    auto tpetraOp = amesos2Op->get_amesos2Solver()->getMatrix();
     startOver =
       (
        tpetraFwdOp.get() != tpetraOp.get()
@@ -178,58 +173,54 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
     // This LOWS object has not be initialized yet or is not compatible with the existing
     // 
     // so this is where we setup everything from the ground up.
-    //
-    // Create the linear problem factory
-    Amesos2::Details::LinearSolverFactory<Tpetra_MultiVector,Tpetra_Operator,Scalar> linearsolverfactory;
 
     // Create the concrete solver
-    Teuchos::RCP< Trilinos::Details::LinearSolver<Tpetra_MultiVector,Tpetra_Operator,Scalar> > 
-      amesos2Solver;
+    Teuchos::RCP<Solver> amesos2Solver;
     {
       THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:InitConstruct",
         InitConstruct);
       switch(solverType_) {
         case Thyra::Amesos2::LAPACK:
-          amesos2Solver = Amesos2::create<MAT,MV>("lapack", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("lapack", tpetraCrsMat);
           break;
 #ifdef HAVE_AMESOS2_KLU2
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("klu2", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("klu2", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("superlu", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("superlu", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUMT
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("superlumt", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("superlumt", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUDIST
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("superludist", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("superludist", tpetraCrsMat);
           break;
 #  endif
 #ifdef HAVE_AMESOS2_PARDISO_MKL
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("pardiso_mkl", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("pardiso_mkl", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_CHOLMOD
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("cholmod", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("cholmod", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_BASKER
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("basker", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("basker", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_MUMPS
         case Thyra::Amesos2::KLU2:
-          amesos2Solver = Amesos2::create<MAT,MV>("mumps", tpetraCrsMat);
+          amesos2Solver = ::Amesos2::create<MAT,MV>("mumps", tpetraCrsMat);
           break;
 #endif
           default:
@@ -260,20 +251,19 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
     //
     // Get non-const pointers to the linear problem and the amesos solver.
     // These const-casts are just fine since the amesos2Op in non-const.
-    Teuchos::RCP< Trilinos::Details::LinearSolver<Tpetra_MultiVector,Tpetra_Operator,Scalar> >
-      amesos2Solver = amesos2Op->get_amesos2Solver();
+    auto amesos2Solver = amesos2Op->get_amesos2Solver();
 
     // set 
-    amesos2Solver->setMatrix(tpetraFwdOp);
+    amesos2Solver->setA(tpetraCrsMat);
 
     // Do the initial factorization
     if(refactorizationPolicy_ == Amesos2::REPIVOT_ON_REFACTORIZATION) {
       THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:Symbolic", Symbolic);
-      amesos2Solver->symbolic();
+      amesos2Solver->symbolicFactorization();
     }
     {
       THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF::Factor", Factor);
-      amesos2Solver->numeric();
+      amesos2Solver->numericFactorization();
     }
 
     // Initialize the LOWS object and we are done!
