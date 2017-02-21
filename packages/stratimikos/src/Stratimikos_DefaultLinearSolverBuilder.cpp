@@ -513,6 +513,9 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     );
 #endif
 
+  // Note: Above, the last LOWSF object set will be the default!
+  // (unless we have only one processor, see below:)
+
 #if defined( HAVE_STRATIMIKOS_AMESOS2 )
   if (Teuchos::GlobalMPISession::getNProc() == 1) {
     setDefaultLinearSolveStrategyFactoryName("Amesos2");
