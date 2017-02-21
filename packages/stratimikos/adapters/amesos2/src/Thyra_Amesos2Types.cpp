@@ -45,45 +45,117 @@
 
 namespace Thyra {
 
-const Amesos2Stratimikos::ESolverType Amesos2Stratimikos::solverTypeValues[Amesos2Stratimikos::numSolverTypes] =
+const Amesos2::ESolverType Amesos2::solverTypeValues[Amesos2::numSolverTypes] =
 {
-  Amesos2Stratimikos::SuperLU
+  Amesos2::LAPACK
+#ifdef HAVE_AMESOS2_KLU2
+  ,Amesos2::KLU2
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+  ,Amesos2::SUPERLU
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUMT
+  ,Amesos2::SUPERLUMT
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUDIST
+  ,Amesos2::SUPERLUDIST
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+  ,Amesos2::PARDISO_MKL
+#endif
+#ifdef HAVE_AMESOS2_CHOLMOD
+  ,Amesos2::CHOLMOD
+#endif
+#ifdef HAVE_AMESOS2_BASKER
+  ,Amesos2::BASKER
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+  ,Amesos2::MUMPS
+#endif
 };
 
-const char* Amesos2Stratimikos::solverTypeNames[Amesos2Stratimikos::numSolverTypes] =
+const char* Amesos2::solverTypeNames[Amesos2::numSolverTypes] =
 {
-  "Klu"
+  "Lapack"
+#ifdef HAVE_AMESOS2_KLU2
+  ,"Klu2"
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+  ,"Superlu"
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUMT
+  ,"Superlumt"
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUDIST
+  ,"Superludist"
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+  ,"Pardiso_mkl"
+#endif
+#ifdef HAVE_AMESOS2_CHOLMOD
+  ,"Cholmod"
+#endif
+#ifdef HAVE_AMESOS2_BASKER
+  ,"Basker"
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+  ,"Mumps"
+#endif
 };
 
-const bool Amesos2Stratimikos::supportsUnsymmetric[Amesos2Stratimikos::numSolverTypes] =
+const bool Amesos2::supportsUnsymmetric[Amesos2::numSolverTypes] =
 {
   true
+#ifdef HAVE_AMESOS2_KLU2
+  ,true
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+  ,true
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUMT
+  ,true
+#endif
+#ifdef HAVE_AMESOS2_SUPERLUDIST
+  ,true
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+  ,true
+#endif
+#ifdef HAVE_AMESOS2_CHOLMOD
+  ,false //don't know, being conservative
+#endif
+#ifdef HAVE_AMESOS2_BASKER
+  ,false //don't know, being conservative
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+  ,true
+#endif
 };
 
 Teuchos::StringToIntMap
-Amesos2Stratimikos::solverTypeNameToEnumMap(
-  "Amesos2Stratimikos2::SolverType"
-  ,Amesos2Stratimikos::numSolverTypes
-  ,Amesos2Stratimikos::solverTypeNames
+Amesos2::solverTypeNameToEnumMap(
+  "Amesos2::SolverType"
+  ,Amesos2::numSolverTypes
+  ,Amesos2::solverTypeNames
   );
 
-const Amesos2Stratimikos::ERefactorizationPolicy Amesos2Stratimikos::refactorizationPolicyValues[Amesos2Stratimikos::numRefactorizationPolices] =
+const Amesos2::ERefactorizationPolicy Amesos2::refactorizationPolicyValues[Amesos2::numRefactorizationPolices] =
 {
-  Amesos2Stratimikos::REPIVOT_ON_REFACTORIZATION
-  ,Amesos2Stratimikos::NO_PIVOT_ON_REFACTORIZATION
+  Amesos2::REPIVOT_ON_REFACTORIZATION
+  ,Amesos2::NO_PIVOT_ON_REFACTORIZATION
 };
 
-const char* Amesos2Stratimikos::refactorizationPolicyNames[Amesos2Stratimikos::numRefactorizationPolices] =
+const char* Amesos2::refactorizationPolicyNames[Amesos2::numRefactorizationPolices] =
 {
   "RepivotOnRefactorization"
   ,"NoPivotOnRefactorization"
 };
 
 Teuchos::StringToIntMap
-Amesos2Stratimikos::refactorizationPolicyNameToEnumMap(
-  "Amesos2Stratimikos2::RefactorizationPolices"
-  ,Amesos2Stratimikos::numRefactorizationPolices
-  ,Amesos2Stratimikos::refactorizationPolicyNames
+Amesos2::refactorizationPolicyNameToEnumMap(
+  "Amesos2::RefactorizationPolices"
+  ,Amesos2::numRefactorizationPolices
+  ,Amesos2::refactorizationPolicyNames
   );
 
 } // namespace Thyra
