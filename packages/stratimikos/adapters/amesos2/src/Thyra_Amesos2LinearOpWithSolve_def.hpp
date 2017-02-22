@@ -53,9 +53,7 @@ namespace Thyra {
 // Constructors/initializers/accessors
 
 template<typename Scalar>
-Amesos2LinearOpWithSolve<Scalar>::Amesos2LinearOpWithSolve():
-  amesos2SolverTransp_(Thyra::NOTRANS),
-  amesos2SolverScalar_(1.0)
+Amesos2LinearOpWithSolve<Scalar>::Amesos2LinearOpWithSolve()
 {
 }
 
@@ -96,33 +94,7 @@ Amesos2LinearOpWithSolve<Scalar>::extract_fwdOpSrc()
   return _fwdOpSrc;
 }
 
-
-template<typename Scalar>
-void Amesos2LinearOpWithSolve<Scalar>::uninitialize(
-  Teuchos::RCP<const LinearOpBase<Scalar> > *fwdOp,
-  Teuchos::RCP<const LinearOpSourceBase<Scalar> > *fwdOpSrc,
-  Teuchos::RCP< Solver > *amesos2Solver,
-  EOpTransp *amesos2SolverTransp,
-  Scalar *amesos2SolverScalar
-  )
-{
-  if(fwdOp) *fwdOp = fwdOp_;
-  if(fwdOpSrc) *fwdOpSrc = fwdOpSrc_;
-  if(amesos2Solver) *amesos2Solver = amesos2Solver_;
-  if(amesos2SolverTransp) *amesos2SolverTransp = amesos2SolverTransp_;
-  if(amesos2SolverScalar) *amesos2SolverScalar = amesos2SolverScalar_;
-
-  fwdOp_ = Teuchos::null;
-  fwdOpSrc_ = Teuchos::null;
-  amesos2Solver_ = Teuchos::null;
-  amesos2SolverTransp_ = NOTRANS;
-  amesos2SolverScalar_ = 0.0;
-
-}
-
-
 // Overridden from LinearOpBase
-
 
 template<typename Scalar>
 Teuchos::RCP< const VectorSpaceBase<Scalar> >
@@ -259,16 +231,16 @@ Amesos2LinearOpWithSolve<Scalar>::solveImpl(
 {
   auto Btpetra = ConverterT::getConstTpetraMultiVector(Teuchos::rcpFromRef(B));
 
-  auto Xtpetra = ConverterT::getConstTpetraMultiVector(Teuchos::rcpFromPtr(X));
+  auto Xtpetra = ConverterT::getTpetraMultiVector(Teuchos::rcpFromPtr(X));
 
   Teuchos::RCP<Teuchos::FancyOStream> out = this->getOStream();
   Teuchos::EVerbosityLevel verbLevel = this->getVerbLevel();
   
   if(out.get() && static_cast<int>(verbLevel) > static_cast<int>(Teuchos::VERB_NONE))
-    *out << "\nSolving block system using Amesos2 solver "
+    *out << "\nSolving system using Amesos2 solver "
          << typeName(*amesos2Solver_) << " ...\n\n";
 
-  amesos2Solver_->solve(Teuchos::ptr(*Xtpetra), Teuchos::ptr(*Btpetra));
+  amesos2Solver_->solve(Xtpetra.ptr(), Btpetra.ptr());
 
   SolveStatus<Scalar> solveStatus;
   solveStatus.solveStatus = SOLVE_STATUS_CONVERGED; 

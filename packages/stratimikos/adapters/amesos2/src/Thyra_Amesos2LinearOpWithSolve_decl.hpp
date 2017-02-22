@@ -119,28 +119,10 @@ public:
   Teuchos::RCP<const LinearOpBase<Scalar> > get_fwdOp() const;
 
   /** \brief . */
-  Teuchos::RCP<const Solver > get_amesos2Solver() const;
+  Teuchos::RCP<Solver> get_amesos2Solver();
 
   /** \brief . */
   Teuchos::RCP<const LinearOpSourceBase<Scalar> > get_fwdOpSrc() const;
-
-  /** \brief . */
-  EOpTransp get_amesos2SolverTransp() const;
-
-  /** \brief . */
-  Scalar get_amesos2SolverScalar() const;
-
-  /** \brief Uninitialize.
-   */
-  void uninitialize(
-    Teuchos::RCP<const LinearOpBase<Scalar> > *fwdOp = NULL,
-    Teuchos::RCP<const LinearOpSourceBase<Scalar> > *fwdOpSrc = NULL,
-    Teuchos::RCP< Solver > *amesosSolver = NULL,
-    EOpTransp *amesos2SolverTransp = NULL,
-    Scalar *amesos2SolverScalar = NULL
-    );
-  
-  //@}
 
   /** @name Overridden public functions from LinearOpBase */
   //@{
@@ -201,8 +183,6 @@ private:
   Teuchos::RCP<const LinearOpBase<Scalar> > fwdOp_;
   Teuchos::RCP<const LinearOpSourceBase<Scalar> > fwdOpSrc_;
   Teuchos::RCP< Solver > amesos2Solver_;
-  EOpTransp amesos2SolverTransp_;
-  Scalar amesos2SolverScalar_;
 
   void assertInitialized() const;
 
@@ -221,8 +201,8 @@ Amesos2LinearOpWithSolve<Scalar>::get_fwdOp() const
 
 template<typename Scalar>
 inline
-Teuchos::RCP<const typename Amesos2LinearOpWithSolve<Scalar>::Solver>
-Amesos2LinearOpWithSolve<Scalar>::get_amesos2Solver() const
+Teuchos::RCP<typename Amesos2LinearOpWithSolve<Scalar>::Solver>
+Amesos2LinearOpWithSolve<Scalar>::get_amesos2Solver()
 {
   return amesos2Solver_;
 }
@@ -233,20 +213,6 @@ Teuchos::RCP<const LinearOpSourceBase<Scalar> >
 Amesos2LinearOpWithSolve<Scalar>::get_fwdOpSrc() const
 {
   return fwdOpSrc_;
-}
-
-template<typename Scalar>
-inline
-EOpTransp Amesos2LinearOpWithSolve<Scalar>::get_amesos2SolverTransp() const
-{
-  return amesos2SolverTransp_;
-}
-
-template<typename Scalar>
-inline
-Scalar Amesos2LinearOpWithSolve<Scalar>::get_amesos2SolverScalar() const
-{
-  return amesos2SolverScalar_;
 }
 
 } // namespace Thyra

@@ -158,10 +158,10 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
   bool startOver = ( amesos2Op->get_amesos2Solver()==Teuchos::null );
   if(!startOver) 
   {
-    auto tpetraOp = amesos2Op->get_amesos2Solver()->getMatrix();
+    auto oldTpetraFwdOp = ConverterT::getConstTpetraOperator(amesos2Op->get_fwdOp());
     startOver =
       (
-       tpetraFwdOp.get() != tpetraOp.get()
+       tpetraFwdOp.get() != oldTpetraFwdOp.get()
        // Assuming that, like Amesos, Amesos2 must start over if the matrix changes
       );
   }
@@ -189,37 +189,37 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::SUPERLU:
           amesos2Solver = ::Amesos2::create<MAT,MV>("superlu", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUMT
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::SUPERLUMT:
           amesos2Solver = ::Amesos2::create<MAT,MV>("superlumt", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUDIST
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::SUPERLUDIST:
           amesos2Solver = ::Amesos2::create<MAT,MV>("superludist", tpetraCrsMat);
           break;
 #  endif
 #ifdef HAVE_AMESOS2_PARDISO_MKL
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::PARDISO_MKL:
           amesos2Solver = ::Amesos2::create<MAT,MV>("pardiso_mkl", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_CHOLMOD
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::CHOLMOD:
           amesos2Solver = ::Amesos2::create<MAT,MV>("cholmod", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_BASKER
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::BASKER:
           amesos2Solver = ::Amesos2::create<MAT,MV>("basker", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_MUMPS
-        case Thyra::Amesos2::KLU2:
+        case Thyra::Amesos2::MUMPS:
           amesos2Solver = ::Amesos2::create<MAT,MV>("mumps", tpetraCrsMat);
           break;
 #endif
@@ -248,9 +248,6 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
     //
     // This LOWS object has already be initialized once so we must just reset
     // the matrix and refactor it.
-    //
-    // Get non-const pointers to the linear problem and the amesos solver.
-    // These const-casts are just fine since the amesos2Op in non-const.
     auto amesos2Solver = amesos2Op->get_amesos2Solver();
 
     // set 
@@ -320,7 +317,6 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::uninitializeOp(
   ,ESupportSolveUse                                           *supportSolveUse
   ) const
 {
-  //std::cout << "Amesos2LinearOpWithSolveFactory<Scalar>::uninitializeOp" << std::endl;
 #ifdef TEUCHOS_DEBUG
   TEUCHOS_TEST_FOR_EXCEPT(Op==NULL);
 #endif
