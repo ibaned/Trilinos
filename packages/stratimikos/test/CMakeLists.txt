@@ -38,7 +38,6 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(CopyTestXMLFiles
   DEST_FILES
     FourByFour.xml
     FourByFour.amesos.xml
-    FourByFour.amesos2.xml
     FourByFour.aztecoo.np.xml
     FourByFour.aztecoo.ifpack.xml
     FourByFour.aztecoo.ifpack.adjoint.xml
@@ -156,19 +155,6 @@ IF (${PACKAGE_NAME}_ENABLE_Belos)
   ENDIF()
 
 
-ENDIF()
-
-ASSERT_DEFINED(${PACKAGE_NAME}_ENABLE_Amesos2)
-IF (${PACKAGE_NAME}_ENABLE_Amesos2)
-  TRIBITS_ADD_TEST(
-    test_single_stratimikos_solver_driver
-    NAME test_single_stratimikos_solver_driver_amesos2
-    ARGS 
-      "--input-file=FourByFour.xml --show-timer-summary"
-      "--input-file=FourByFour.amesos2.xml --show-timer-summary"
-    COMM serial mpi
-    NUM_MPI_PROCS 1
-    )
 ENDIF()
 
 # Stratimikos now has optional test dependencies on Ifpack2 (and thus
