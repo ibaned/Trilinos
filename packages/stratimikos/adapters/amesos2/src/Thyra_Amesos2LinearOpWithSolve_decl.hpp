@@ -73,17 +73,11 @@ template<typename Scalar>
 class Amesos2LinearOpWithSolve: virtual public LinearOpWithSolveBase<Scalar>
 {
 public:
-  using LO = int;
-#ifdef HAVE_TPETRA_INST_INT_LONG_LONG
-  using GO = long long;
-#else
-  using GO = int;
-#endif
-  using MAT = Tpetra::CrsMatrix<Scalar, LO, GO>;
-  using Op = Tpetra::Operator<Scalar, LO, GO>;
-  using MV = Tpetra::MultiVector<Scalar, LO, GO>;
+  using MAT = Tpetra::CrsMatrix<Scalar>;
+  using Op = Tpetra::Operator<Scalar>;
+  using MV = Tpetra::MultiVector<Scalar>;
   using Solver = ::Amesos2::Solver<MAT, MV>;
-  using ConverterT = TpetraOperatorVectorExtraction<Scalar, LO, GO>;
+  using ConverterT = TpetraOperatorVectorExtraction<Scalar>;
 
   /** @name Constructors/initializers/accessors */
   //@{
