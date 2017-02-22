@@ -45,7 +45,6 @@
 #ifndef TEST_SINGLE_AMESOS2_TPETRA_SOLVER_HPP
 #define TEST_SINGLE_AMESOS2_TPETRA_SOLVER_HPP
 
-#include "BelosConfigDefs.hpp"
 #include "Teuchos_FancyOStream.hpp"
 
 namespace Teuchos { class ParameterList; }
