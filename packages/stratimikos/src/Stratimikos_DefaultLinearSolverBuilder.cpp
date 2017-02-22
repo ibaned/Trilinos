@@ -481,6 +481,14 @@ void DefaultLinearSolverBuilder::initializeDefaults()
   // Linear Solvers
   //
 
+#ifdef HAVE_STRATIMIKOS_AMESOS2
+  setLinearSolveStrategyFactory(
+    abstractFactoryStd<Thyra::LinearOpWithSolveFactoryBase<double>,
+    Thyra::Amesos2LinearOpWithSolveFactory<double>>(),
+    "Amesos2", true
+    );
+#endif
+
 #ifdef HAVE_STRATIMIKOS_BELOS
   setLinearSolveStrategyFactory(
     abstractFactoryStd<Thyra::LinearOpWithSolveFactoryBase<double>,
@@ -497,14 +505,6 @@ void DefaultLinearSolverBuilder::initializeDefaults()
     );
 #endif
 
-#ifdef HAVE_STRATIMIKOS_AMESOS2
-  setLinearSolveStrategyFactory(
-    abstractFactoryStd<Thyra::LinearOpWithSolveFactoryBase<double>,
-    Thyra::Amesos2LinearOpWithSolveFactory<double>>(),
-    "Amesos2", true
-    );
-#endif
-
 #if defined(HAVE_STRATIMIKOS_EPETRAEXT) && defined(HAVE_STRATIMIKOS_AZTECOO)
   setLinearSolveStrategyFactory(
     abstractFactoryStd<Thyra::LinearOpWithSolveFactoryBase<double>,
@@ -516,10 +516,6 @@ void DefaultLinearSolverBuilder::initializeDefaults()
   // Note: Above, the last LOWSF object set will be the default!
   // (unless we have only one processor, see below:)
 
-#if defined( HAVE_STRATIMIKOS_AMESOS2 )
-  if (Teuchos::GlobalMPISession::getNProc() == 1) {
-    setDefaultLinearSolveStrategyFactoryName("Amesos2");
-  }
 #elif defined( HAVE_STRATIMIKOS_AMESOS )
   if (Teuchos::GlobalMPISession::getNProc() == 1) {
     setDefaultLinearSolveStrategyFactoryName("Amesos");
