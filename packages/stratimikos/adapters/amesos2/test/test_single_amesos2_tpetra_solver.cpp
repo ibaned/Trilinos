@@ -52,10 +52,8 @@
 #include "Thyra_LinearOpWithSolveTester.hpp"
 #include "Thyra_MultiVectorStdOps.hpp"
 #include "Thyra_VectorStdOps.hpp"
-#include "Tpetra_MatrixIO.hpp"
+#include "MatrixMarket_Tpetra.hpp"
 #include "Teuchos_ParameterList.hpp"
-
-#endif // SUN_CXX
 
 bool Thyra::test_single_amesos2_tpetra_solver(
   const std::string                       matrixFile
@@ -78,16 +76,12 @@ bool Thyra::test_single_amesos2_tpetra_solver(
 
   try {
 
-#ifndef SUN_CXX
-
     if(out.get()) {
       *out << "\n***"
            << "\n*** Testing Thyra::BelosLinearOpWithSolveFactory (and Thyra::BelosLinearOpWithSolve)"
            << "\n***\n"
            << "\nEchoing input options:"
            << "\n  matrixFile             = " << matrixFile
-           << "\n  testTranspose          = " << testTranspose
-           << "\n  usePreconditioner      = " << usePreconditioner
            << "\n  numRhs                 = " << numRhs
            << "\n  numRandomVectors       = " << numRandomVectors
            << "\n  maxFwdError            = " << maxFwdError
@@ -102,26 +96,26 @@ bool Thyra::test_single_amesos2_tpetra_solver(
     auto comm = Tpetra::DefaultPlatform::getDefaultPlatform().getComm();
     using Scalar = double;
     using LOWS = Thyra::Amesos2LinearOpWithSolve<Scalar>;
-    using LO = typename LOWS::LO;
-    using GO = typename LOWS::GO;
     using MAT = typename LOWS::MAT;
     using LOWSF = Thyra::Amesos2LinearOpWithSolveFactory<Scalar>;
-    Teuchos::RCP<MAT> A_tpetra;
-    Tpetra::Utils::readHBMatrix( matrixFile, comm, A_tpetra );
-    auto domain_thyra = Thyra::tpetraVectorSpace(A_tpetra->getDomainMap());
-    auto range_thyra = Thyra::tpetraVectorSpace(A_tpetra->getRangeMap());
+    auto A_tpetra = Tpetra::MatrixMarket::Reader<MAT>::readSparseFile(matrixFile, comm);
+    auto domain_thyra = Thyra::tpetraVectorSpace<Scalar>(A_tpetra->getDomainMap());
+    auto range_thyra = Thyra::tpetraVectorSpace<Scalar>(A_tpetra->getRangeMap());
+    Teuchos::RCP<const Thyra::VectorSpaceBase<Scalar>> domain_thyra_const = domain_thyra;
+    Teuchos::RCP<const Thyra::VectorSpaceBase<Scalar>> range_thyra_const = range_thyra;
+    Teuchos::RCP<const Tpetra::Operator<Scalar>> A_tpetra_const = A_tpetra;
 
-    auto A_thyra = Thyra::constTpetraLinearOp(range_thyra, domain_thyra, A_tpetra);
+    auto A_thyra = Thyra::constTpetraLinearOp(range_thyra_const, domain_thyra_const, A_tpetra_const);
 
     if(out.get() && dumpAll) *out << "\ndescribe(A) =\n" << describe(*A_thyra,Teuchos::VERB_EXTREME);
 
     if(out.get()) *out << "\nB) Creating an Amesos2LinearOpWithSolveFactory object opFactory ...\n";
 
-    Teuchos::RCP<LinearOpWithSolveFactoryBase<double> >
+    Teuchos::RCP<LinearOpWithSolveFactoryBase<Scalar> >
       lowsFactory;
     {
-      Teuchos::RCP<Amesos2LinearOpWithSolveFactory<double> >
-        amesos2LowsFactory = Teuchos::rcp(new Amesos2LinearOpWithSolveFactory<double>());
+      Teuchos::RCP<LOWSF>
+        amesos2LowsFactory = Teuchos::rcp(new LOWSF());
       lowsFactory = amesos2LowsFactory;
     }
 
@@ -129,50 +123,44 @@ bool Thyra::test_single_amesos2_tpetra_solver(
       *out << "\nlowsFactory.getValidParameters():\n";
       lowsFactory->getValidParameters()->print(OSTab(out).o(),0,true,false);
       *out << "\namesos2LOWSFPL before setting parameters:\n";
-      belosLOWSFPL->print(OSTab(out).o(),0,true);
+      amesos2LOWSFPL->print(OSTab(out).o(),0,true);
     }
 
     lowsFactory->setParameterList(Teuchos::rcp(amesos2LOWSFPL,false));
 
     if(out.get()) {
-      *out << "\nbelosLOWSFPL after setting parameters:\n";
-      belosLOWSFPL->print(OSTab(out).o(),0,true);
+      *out << "\namesos2LOWSFPL after setting parameters:\n";
+      amesos2LOWSFPL->print(OSTab(out).o(),0,true);
     }
 
     if(out.get()) *out << "\nC) Creating a Amesos2LinearOpWithSolve object nsA from A ...\n";
 
-    Teuchos::RCP<LinearOpWithSolveBase<double> > nsA = lowsFactory->createOp();
-    Thyra::initializeOp<double>(*lowsFactory,  A, nsA.ptr());
+    Teuchos::RCP<LinearOpWithSolveBase<Scalar> > nsA = lowsFactory->createOp();
+    Thyra::initializeOp<Scalar>(*lowsFactory, A_thyra, nsA.ptr());
 
     if(out.get()) *out << "\nD) Testing the LinearOpBase interface of nsA ...\n";
 
-    LinearOpTester<double> linearOpTester;
-    linearOpTester.check_adjoint(testTranspose);
+    LinearOpTester<Scalar> linearOpTester;
+    linearOpTester.check_adjoint(false);
     linearOpTester.num_rhs(numRhs);
     linearOpTester.num_random_vectors(numRandomVectors);
     linearOpTester.set_all_error_tol(maxFwdError);
     linearOpTester.set_all_warning_tol(1e-2*maxFwdError);
     linearOpTester.show_all_tests(showAllTests);
     linearOpTester.dump_all(dumpAll);
-    Thyra::seed_randomize<double>(0);
+    Thyra::seed_randomize<Scalar>(0);
     result = linearOpTester.check(*nsA,Teuchos::Ptr<Teuchos::FancyOStream>(out.get()));
     if(!result) success = false;
 
     if(out.get()) *out << "\nE) Testing the LinearOpWithSolveBase interface of nsA ...\n";
     
-    LinearOpWithSolveTester<double> linearOpWithSolveTester;
+    LinearOpWithSolveTester<Scalar> linearOpWithSolveTester;
     linearOpWithSolveTester.num_rhs(numRhs);
     linearOpWithSolveTester.turn_off_all_tests();
     linearOpWithSolveTester.check_forward_default(true);
     linearOpWithSolveTester.check_forward_residual(true);
-    if(testTranspose) {
-      linearOpWithSolveTester.check_adjoint_default(true);
-      linearOpWithSolveTester.check_adjoint_residual(true);
-    }
-    else {
-      linearOpWithSolveTester.check_adjoint_default(false);
-      linearOpWithSolveTester.check_adjoint_residual(false);
-    }
+    linearOpWithSolveTester.check_adjoint_default(false);
+    linearOpWithSolveTester.check_adjoint_residual(false);
     linearOpWithSolveTester.set_all_solve_tol(maxResid);
     linearOpWithSolveTester.set_all_slack_error_tol(maxResid);
     linearOpWithSolveTester.set_all_slack_warning_tol(1e+1*maxResid);
@@ -182,7 +170,7 @@ bool Thyra::test_single_amesos2_tpetra_solver(
     linearOpWithSolveTester.adjoint_default_solution_error_error_tol(maxSolutionError);
     linearOpWithSolveTester.show_all_tests(showAllTests);
     linearOpWithSolveTester.dump_all(dumpAll);
-    Thyra::seed_randomize<double>(0);
+    Thyra::seed_randomize<Scalar>(0);
     result = linearOpWithSolveTester.check(*nsA,out.get());
     if(!result) success = false;
 

@@ -9,21 +9,71 @@ TRIBITS_ADD_EXECUTABLE(
   COMM serial mpi
   )
 
-TRIBITS_ADD_TEST(
-  test_single_amesos2_tpetra_solver_driver
-  POSTFIX_AND_ARGS_0 FourByFour
-    --show-all-tests  --matrix-file=FourByFour.mtx
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  )
+IF(Amesos2_ENABLE_SuperLU)
+  TRIBITS_ADD_TEST(
+    test_single_amesos2_tpetra_solver_driver
+    POSTFIX_AND_ARGS_0 A
+    --show-all-tests --solver-type=Superlu --verbose --matrix-file=A.mm
+    COMM serial mpi
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(CopyBelosTestFiles
+IF(Amesos2_ENABLE_SuperLUMT)
+  TRIBITS_ADD_TEST(
+    test_single_amesos2_tpetra_solver_driver
+    POSTFIX_AND_ARGS_0 A
+    --show-all-tests --solver-type=Superlumt --verbose --matrix-file=A.mm
+    COMM serial mpi
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
+
+IF(Amesos2_ENABLE_SuperLUDist)
+  TRIBITS_ADD_TEST(
+    test_single_amesos2_tpetra_solver_driver
+    POSTFIX_AND_ARGS_0 A
+    --show-all-tests --solver-type=Superludist --verbose --matrix-file=A.mm
+    COMM serial mpi
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
+
+IF(Amesos2_ENABLE_PARDISO_MKL)
+  TRIBITS_ADD_TEST(
+    test_single_amesos2_tpetra_solver_driver
+    POSTFIX_AND_ARGS_0 A
+    --show-all-tests --solver-type=Pardiso_mkl --verbose --matrix-file=A.mm
+    COMM serial mpi
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
+
+IF(Amesos2_ENABLE_Cholmod)
+  TRIBITS_ADD_TEST(
+    test_single_amesos2_tpetra_solver_driver
+    POSTFIX_AND_ARGS_0 A
+    --show-all-tests --solver-type=Cholmod --verbose --matrix-file=A.mm
+    COMM serial mpi
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
+
+IF(Amesos2_ENABLE_MUMPS)
+  TRIBITS_ADD_TEST(
+    test_single_amesos2_tpetra_solver_driver
+    POSTFIX_AND_ARGS_0 A
+    --show-all-tests --solver-type=Mumps --verbose --matrix-file=A.mm
+    COMM serial mpi
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(CopyAmesos2TestFiles
   DEST_FILES
-    FourByFour.mtx                          
-  SOURCE_PREFIX
-    "In_"
+    A.mm                          
   SOURCE_DIR
-    "${PACKAGE_SOURCE_DIR}/../amesos/test/Test_Basic"
+    "${PACKAGE_SOURCE_DIR}/../ml/examples/BasicExamples"
   EXEDEPS
     test_single_amesos2_tpetra_solver_driver
   )

@@ -42,7 +42,7 @@
 */
 
 
-#include "test_single_amesos2_thyra_solver.hpp"
+#include "test_single_amesos2_tpetra_solver.hpp"
 #include "Teuchos_CommandLineProcessor.hpp"
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_VerboseObject.hpp"
@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
     //
     
     std::string     matrixFile             = "";
+    std::string     solverType             = "";
     int             numRhs                 = 1;
     int             numRandomVectors       = 1;
     double          maxFwdError            = 1e-14;
@@ -84,6 +85,7 @@ int main(int argc, char* argv[])
     clp.throwExceptions(false);
     clp.addOutputSetupOptions(true);
     clp.setOption( "matrix-file", &matrixFile, "Matrix input file [Required]." );
+    clp.setOption( "solver-type", &solverType, "Type of solver to use [Required]." );
     clp.setOption( "num-rhs", &numRhs, "Number of RHS in linear solve." );
     clp.setOption( "num-random-vectors", &numRandomVectors, "Number of times a test is performed with different random vectors." );
     clp.setOption( "max-fwd-error", &maxFwdError, "The maximum relative error in the forward operator." );
@@ -98,26 +100,17 @@ int main(int argc, char* argv[])
     if( parse_return != CommandLineProcessor::PARSE_SUCCESSFUL ) return parse_return;
 
     TEUCHOS_TEST_FOR_EXCEPT( matrixFile == "" );
+    TEUCHOS_TEST_FOR_EXCEPT( solverType == "" );
 
-    Teuchos::ParameterList amesos2LOWSFPL;
+    Teuchos::ParameterList amesos2LOWSFPL("Amesos2");
 
-    amesos2LOWSFPL.set("Solver Type","Block GMRES");
-
-    Teuchos::ParameterList& amesos2LOWSFPL_solver =
-      amesos2LOWSFPL.sublist("Solver Types");
-
-    Teuchos::ParameterList& amesos2LOWSFPL_gmres =
-      amesos2LOWSFPL_solver.sublist("Block GMRES");
-
-    amesos2LOWSFPL_gmres.set("Convergence Tolerance",double(maxResid));
-    amesos2LOWSFPL_gmres.set("Output Frequency",int(outputFrequency));
-    amesos2LOWSFPL_gmres.set("Show Maximum Residual Norm Only",bool(outputMaxResOnly));
+    amesos2LOWSFPL.set("Solver Type",solverType);
 
     success
-      = Thyra::test_single_amesos2_thyra_solver(
+      = Thyra::test_single_amesos2_tpetra_solver(
         matrixFile,numRhs,numRandomVectors
         ,maxFwdError,maxResid,maxSolutionError,showAllTests,dumpAll
-        ,&amesos2LOWSFPL,&precPL
+        ,&amesos2LOWSFPL
         ,verbose?&*out:0
         );
 

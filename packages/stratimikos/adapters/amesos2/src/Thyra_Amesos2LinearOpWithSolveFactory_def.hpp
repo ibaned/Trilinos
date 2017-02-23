@@ -241,6 +241,8 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
       amesos2Solver->numericFactorization();
     }
 
+    amesos2Solver->setParameters(paramList_);
+
     // Initialize the LOWS object and we are done!
     amesos2Op->initialize(fwdOp,fwdOpSrc,amesos2Solver);
   }
