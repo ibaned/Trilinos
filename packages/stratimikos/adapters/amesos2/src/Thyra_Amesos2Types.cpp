@@ -47,9 +47,9 @@ namespace Thyra {
 
 const Amesos2::ESolverType Amesos2::solverTypeValues[Amesos2::numSolverTypes] =
 {
-  Amesos2::LAPACK
-#ifdef HAVE_AMESOS2_KLU2
-  ,Amesos2::KLU2
+  Amesos2::KLU2
+#ifdef HAVE_AMESOS2_LAPACK
+  ,Amesos2::LAPACK
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
   ,Amesos2::SUPERLU
@@ -76,9 +76,9 @@ const Amesos2::ESolverType Amesos2::solverTypeValues[Amesos2::numSolverTypes] =
 
 const char* Amesos2::solverTypeNames[Amesos2::numSolverTypes] =
 {
-  "LAPACK"
-#ifdef HAVE_AMESOS2_KLU2
-  ,"KLU2"
+  "KLU2"
+#ifdef HAVE_AMESOS2_LAPACK
+  ,"LAPACK"
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
   ,"SuperLU"
@@ -106,7 +106,7 @@ const char* Amesos2::solverTypeNames[Amesos2::numSolverTypes] =
 const bool Amesos2::supportsUnsymmetric[Amesos2::numSolverTypes] =
 {
   true
-#ifdef HAVE_AMESOS2_KLU2
+#ifdef HAVE_AMESOS2_LAPACK
   ,true
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
