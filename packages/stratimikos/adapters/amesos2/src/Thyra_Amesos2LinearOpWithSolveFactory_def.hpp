@@ -241,7 +241,14 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
       amesos2Solver->numericFactorization();
     }
 
-    amesos2Solver->setParameters(paramList_);
+    // filter out the Stratimikos adapter parameters and hand
+    // parameters down into the Solver
+    Teuchos::RCP<Teuchos::ParameterList> dup_list(new Teuchos::ParameterList(*paramList_));
+    dup_list->remove(SolverType_name);
+    dup_list->remove(RefactorizationPolicy_name);
+    dup_list->remove(ThrowOnPreconditionerInput_name);
+    dup_list->remove("VerboseObject");
+    amesos2Solver->setParameters(dup_list);
 
     // Initialize the LOWS object and we are done!
     amesos2Op->initialize(fwdOp,fwdOpSrc,amesos2Solver);
@@ -412,14 +419,7 @@ Amesos2LinearOpWithSolveFactory<Scalar>::generateAndGetValidParameters()
   static RCP<Teuchos::ParameterList> validParamList;
   if(validParamList.get()==NULL) {
     validParamList = Teuchos::rcp(new Teuchos::ParameterList("Amesos2"));
-    validParamList->set(
-      SolverType_name
-#ifdef HAVE_AMESOS2_KLU2
-      ,Amesos2::toString(Amesos2::KLU2)
-#else
-      ,Amesos2::toString(Amesos2::LAPACK)
-#endif
-      );
+    validParamList->set(SolverType_name, Thyra::Amesos2::solverTypeNames[0]);
     validParamList->set(RefactorizationPolicy_name,Amesos2::toString(Amesos2::REPIVOT_ON_REFACTORIZATION));
     validParamList->set(ThrowOnPreconditionerInput_name,bool(true));
     Teuchos::setupVerboseObjectSublist(&*validParamList);

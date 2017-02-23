@@ -76,21 +76,21 @@ const Amesos2::ESolverType Amesos2::solverTypeValues[Amesos2::numSolverTypes] =
 
 const char* Amesos2::solverTypeNames[Amesos2::numSolverTypes] =
 {
-  "Lapack"
+  "LAPACK"
 #ifdef HAVE_AMESOS2_KLU2
-  ,"Klu2"
+  ,"KLU2"
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
-  ,"Superlu"
+  ,"SuperLU"
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUMT
-  ,"Superlumt"
+  ,"SuperLU_MT"
 #endif
 #ifdef HAVE_AMESOS2_SUPERLUDIST
-  ,"Superludist"
+  ,"SuperLU_DIST"
 #endif
 #ifdef HAVE_AMESOS2_PARDISO_MKL
-  ,"Pardiso_mkl"
+  ,"PARDISOMKL"
 #endif
 #ifdef HAVE_AMESOS2_CHOLMOD
   ,"Cholmod"
@@ -99,7 +99,7 @@ const char* Amesos2::solverTypeNames[Amesos2::numSolverTypes] =
   ,"Basker"
 #endif
 #ifdef HAVE_AMESOS2_MUMPS
-  ,"Mumps"
+  ,"MUMPS"
 #endif
 };
 
