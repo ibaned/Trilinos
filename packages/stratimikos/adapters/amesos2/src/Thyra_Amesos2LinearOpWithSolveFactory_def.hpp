@@ -180,12 +180,12 @@ void Amesos2LinearOpWithSolveFactory<Scalar>::initializeOp(
       THYRA_FUNC_TIME_MONITOR_DIFF("Stratimikos: Amesos2LOWSF:InitConstruct",
         InitConstruct);
       switch(solverType_) {
-        case Thyra::Amesos2::LAPACK:
-          amesos2Solver = ::Amesos2::create<MAT,MV>("lapack", tpetraCrsMat);
-          break;
-#ifdef HAVE_AMESOS2_KLU2
         case Thyra::Amesos2::KLU2:
           amesos2Solver = ::Amesos2::create<MAT,MV>("klu2", tpetraCrsMat);
+          break;
+#ifdef HAVE_AMESOS2_LAPACK
+        case Thyra::Amesos2::LAPACK:
+          amesos2Solver = ::Amesos2::create<MAT,MV>("lapack", tpetraCrsMat);
           break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU

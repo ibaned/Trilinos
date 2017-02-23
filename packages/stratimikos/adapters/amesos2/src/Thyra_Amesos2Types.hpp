@@ -55,9 +55,9 @@ namespace Amesos2 {
 \ingroup Amesos2_Thyra_adapters_grp
 */
 enum ESolverType {
-  LAPACK
-#ifdef HAVE_AMESOS2_KLU2
-  ,KLU2
+  KLU2
+#ifdef HAVE_AMESOS2_LAPACK
+  ,LAPACK
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
   ,SUPERLU
@@ -86,7 +86,7 @@ enum ESolverType {
 \ingroup Amesos2_Thyra_adapters_grp
 */
 const int numSolverTypes = 1
-#ifdef HAVE_AMESOS2_KLU2
+#ifdef HAVE_AMESOS2_LAPACK
 +1
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
