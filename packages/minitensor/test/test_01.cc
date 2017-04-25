@@ -45,6 +45,10 @@
 #include "gtest/gtest.h"
 #include "MiniTensor.h"
 
+#ifndef HAVE_SACADO_TEUCHOS
+#error "please set Trilinos_ENABLE_Teuchos in configure"
+#endif
+
 int
 main(int ac, char* av[])
 {
