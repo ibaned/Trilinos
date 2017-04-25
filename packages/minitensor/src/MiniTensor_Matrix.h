@@ -269,9 +269,8 @@ public:
   ///
   /// Simple destructor
   ///
-  virtual
   KOKKOS_INLINE_FUNCTION
-  ~Matrix() final;
+  ~Matrix();
 
   ///
   /// Indexing for constant tensor

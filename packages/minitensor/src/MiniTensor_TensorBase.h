@@ -221,9 +221,8 @@ public:
   ///
   /// Simple destructor
   ///
-  virtual
   KOKKOS_INLINE_FUNCTION
-  ~TensorBase() = 0;
+  ~TensorBase();
 
   ///
   /// Linear access to components
