@@ -63,6 +63,8 @@ Language make_language() {
   prods[PROD_RAW_FIRST_DOT]("RAW_FIRST") >> ".";
   prods[PROD_RAW_NO_REST]("RAW_REST");
   prods[PROD_RAW_REST]("RAW_REST") >> "RAW_MIDDLE*", "RAW_END";
+  prods[PROD_NO_RAW_MIDDLE]("RAW_MIDDLE*");
+  prods[PROD_NEXT_RAW_MIDDLE]("RAW_MIDDLE*") >> "RAW_MIDDLE*", "RAW_MIDDLE";
   prods[PROD_RAW_MIDDLE_OTHER]("RAW_MIDDLE") >> "OTHERCHAR";
   prods[PROD_RAW_MIDDLE_DASH]("RAW_MIDDLE") >> "-";
   prods[PROD_RAW_MIDDLE_DOT]("RAW_MIDDLE") >> ".";
@@ -70,6 +72,8 @@ Language make_language() {
   prods[PROD_RAW_END_OTHER]("RAW_END") >> "OTHERCHAR";
   prods[PROD_RAW_END_DASH]("RAW_END") >> "-";
   prods[PROD_RAW_END_DOT]("RAW_END") >> ".";
+  prods[PROD_NO_DQUOTED_CHAR]("DQUOTED_CHAR*");
+  prods[PROD_NEXT_DQUOTED_CHAR]("DQUOTED_CHAR*") >> "DQUOTED_CHAR*", "DQUOTED_CHAR";
   prods[PROD_DQUOTED_CHAR_QUOTED]("DQUOTED_CHAR") >> "QUOTED_CHAR";
   prods[PROD_DQUOTED_CHAR_SQUOT]("DQUOTED_CHAR") >> "'";
   prods[PROD_DQUOTED_CHAR_ESCAPE]("DQUOTED_CHAR") >> "\\", "DQUOTED_ESCAPED";
@@ -135,7 +139,7 @@ Language make_language() {
   toks[TOK_DQUOT]("\"", "\"");
   toks[TOK_PIPE]("|", "\\|");
   toks[TOK_BSLASH]("\\", "\\\\");
-  toks[TOK_OTHERCHAR]("OTHERCHAR", "[^ \t:,\\[\\]{}#\\-\\.%'\"|\\\\\n\r]");
+  toks[TOK_OTHERCHAR]("OTHERCHAR", "[^ \t:,\\[\\]{}#\\-\\.%'\"\\|\\\\\n\r]");
   return out;
 }
 

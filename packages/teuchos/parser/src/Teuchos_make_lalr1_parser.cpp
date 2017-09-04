@@ -418,11 +418,14 @@ static std::string escape_dot(std::string const& s) {
   std::string out;
   for (std::size_t i = 0; i < s.size(); ++i) {
     char c = s[i];
-    if (c == '\\' || c == '|' || c == '\"' || c == '<' || c == '>') {
+    if (c == '\\' || c == '|' || c == '\"' || c == '<' || c == '>' || c == '{' || c == '}') {
       out.push_back('\\');
       out.push_back(c);
     } else if (c == '.') {
-      out += "\'.\'";
+      out = "'";
+      out += s;
+      out += "'";
+      return out;
     } else {
       out.push_back(c);
     }
