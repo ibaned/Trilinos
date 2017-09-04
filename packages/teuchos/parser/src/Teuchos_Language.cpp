@@ -42,12 +42,16 @@ GrammarPtr make_grammar(Language const& language) {
   for (Language::Tokens::const_iterator it = language.tokens.begin();
        it != language.tokens.end(); ++it) {
     const Language::Token& token = *it;
+    TEUCHOS_TEST_FOR_EXCEPTION(token.name.empty(), ParserFail,
+        "ERROR: token " << it - language.tokens.begin() << " has an empty name\n");
     symbol_map[token.name] = nterminals++;
   }
   int nsymbols = nterminals;
   for (Language::Productions::const_iterator it = language.productions.begin();
        it != language.productions.end(); ++it) {
     const Language::Production& production = *it;
+    TEUCHOS_TEST_FOR_EXCEPTION(production.lhs.empty(), ParserFail,
+        "ERROR: production " << it - language.productions.begin() << " has an empty LHS name\n");
     if (symbol_map.count(production.lhs)) continue;
     symbol_map[production.lhs] = nsymbols++;
   }

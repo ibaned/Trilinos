@@ -1,5 +1,7 @@
 #include "Teuchos_YAML.hpp"
 
+#include <iostream>
+
 namespace Teuchos {
 namespace yaml {
 
@@ -27,9 +29,9 @@ Language make_language() {
   prods[PROD_BMAP_ITEMS]("block_map_items") >> "block_map_items", "EQDENT", "block_map_item";
   prods[PROD_BSEQ_ITEM]("block_sequence_items") >> "block_sequence_item";
   prods[PROD_BSEQ_ITEMS]("block_sequence_items") >> "block_sequence_items", "EQDENT", "block_sequence_item";
-  prods[PROD_BSEQ_SCALAR]("block_sequence_item") >> "comments", "BLOCK_SEQ", "scalar", "S?";
-  prods[PROD_BMAP_ITEM]("block_map_item") >> "comments", "scalar", "S?", ":", "S?", "block_map_value";
-  prods[PROD_BMAP_SCALAR]("block_map_value") >> "scalar", "S?";
+  prods[PROD_BSEQ_SCALAR]("block_sequence_item") >> "comments", "BLOCK_SEQ", "scalar";
+  prods[PROD_BMAP_ITEM]("block_map_item") >> "comments", "scalar", ":", "S?", "block_map_value";
+  prods[PROD_BMAP_SCALAR]("block_map_value") >> "scalar";
   prods[PROD_BMAP_BLOCK]("block_map_value") >> "block_collective";
   prods[PROD_BMAP_FLOW]("block_map_value") >> "flow_collective";
   prods[PROD_FSEQ_EMPTY]("flow_collective") >> "[", "S?", "]";
@@ -38,12 +40,12 @@ Language make_language() {
   prods[PROD_FMAP]("flow_collective") >> "{", "S?", "flow_map_items", "}";
   prods[PROD_FSEQ_ITEM]("flow_sequence_items") >> "flow_sequence_item";
   prods[PROD_FSEQ_ITEMS]("flow_sequence_items") >> "flow_sequence_items", ",", "S?", "flow_sequence_item";
-  prods[PROD_FSEQ_SCALAR]("flow_sequence_item") >> "scalar", "S?";
+  prods[PROD_FSEQ_SCALAR]("flow_sequence_item") >> "scalar";
   prods[PROD_FSEQ_FLOW]("flow_sequence_item") >> "flow_collective", "S?";
   prods[PROD_FMAP_ONE_ITEM]("flow_map_items") >> "flow_map_item";
   prods[PROD_FMAP_ITEMS]("flow_map_items") >> "flow_map_items", ",", "S?", "flow_map_item";
-  prods[PROD_FMAP_ITEM]("flow_map_item") >> "scalar", "S?", ":", "S?", "flow_map_value";
-  prods[PROD_FMAP_SCALAR]("flow_map_value") >> "scalar", "S?";
+  prods[PROD_FMAP_ITEM]("flow_map_item") >> "scalar", ":", "S?", "flow_map_value";
+  prods[PROD_FMAP_SCALAR]("flow_map_value") >> "scalar";
   prods[PROD_FMAP_FLOW]("flow_map_value") >> "flow_collective", "S?";
   prods[PROD_NO_SPACE]("S?");
   prods[PROD_SPACE]("S?") >> "S";
@@ -51,7 +53,7 @@ Language make_language() {
   prods[PROD_COMMENTS]("comments") >> "comments", "COMMENT", "EQDENT";
   prods[PROD_NO_EQDENT]("EQDENT?");
   prods[PROD_EQDENT]("EQDENT?") >> "EQDENT";
-  prods[PROD_RAW]("scalar") >> "RAW_FIRST", "RAW_REST";
+  prods[PROD_RAW]("scalar") >> "RAW_FIRST", "RAW_REST*";
   prods[PROD_DQUOTED]("scalar") >> "\"", "DQUOTED_CHAR*", "\"";
   prods[PROD_SQUOTED]("scalar") >> "'", "SQUOTED_CHAR*", "SQUOTED_CONTD*", "'";
   prods[PROD_BLOCK_SEQ]("BLOCK_SEQ") >> "-", "S";
@@ -61,17 +63,13 @@ Language make_language() {
   prods[PROD_RAW_SECOND_DOT]("RAW_SECOND") >> ".";
   prods[PROD_RAW_FIRST_OTHER]("RAW_FIRST") >> "OTHERCHAR";
   prods[PROD_RAW_FIRST_DOT]("RAW_FIRST") >> ".";
-  prods[PROD_RAW_NO_REST]("RAW_REST");
-  prods[PROD_RAW_REST]("RAW_REST") >> "RAW_MIDDLE*", "RAW_END";
-  prods[PROD_NO_RAW_MIDDLE]("RAW_MIDDLE*");
-  prods[PROD_NEXT_RAW_MIDDLE]("RAW_MIDDLE*") >> "RAW_MIDDLE*", "RAW_MIDDLE";
-  prods[PROD_RAW_MIDDLE_OTHER]("RAW_MIDDLE") >> "OTHERCHAR";
-  prods[PROD_RAW_MIDDLE_DASH]("RAW_MIDDLE") >> "-";
-  prods[PROD_RAW_MIDDLE_DOT]("RAW_MIDDLE") >> ".";
-  prods[PROD_RAW_MIDDLE_WS]("RAW_MIDDLE") >> "WS";
-  prods[PROD_RAW_END_OTHER]("RAW_END") >> "OTHERCHAR";
-  prods[PROD_RAW_END_DASH]("RAW_END") >> "-";
-  prods[PROD_RAW_END_DOT]("RAW_END") >> ".";
+  prods[PROD_RAW_NO_REST]("RAW_REST*");
+  prods[PROD_RAW_REST]("RAW_REST*") >> "RAW_REST*", "RAW_REST";
+  std::cout << "production " << PROD_RAW_REST_OTHER << " is RAW_REST >> OTHERCHAR\n";
+  prods[PROD_RAW_REST_OTHER]("RAW_REST") >> "OTHERCHAR";
+  std::cout << "production " << PROD_RAW_REST_DOT << " is RAW_REST >> '.'\n";
+  prods[PROD_RAW_REST_DOT]("RAW_REST") >> ".";
+  prods[PROD_RAW_REST_WS]("RAW_REST") >> "WS";
   prods[PROD_NO_DQUOTED_CHAR]("DQUOTED_CHAR*");
   prods[PROD_NEXT_DQUOTED_CHAR]("DQUOTED_CHAR*") >> "DQUOTED_CHAR*", "DQUOTED_CHAR";
   prods[PROD_DQUOTED_CHAR_QUOTED]("DQUOTED_CHAR") >> "QUOTED_CHAR";
