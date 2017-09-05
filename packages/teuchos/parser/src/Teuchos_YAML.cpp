@@ -11,14 +11,15 @@ Language make_language() {
   Language::Tokens& toks = out.tokens;
   prods.resize(NPRODS);
   toks.resize(NTOKS);
-  prods[PROD_DOC]("doc") >> "EQDENT", "prolog", "EQDENT", "toplevel", "EQDENT";
+  prods[PROD_DOC]("doc") >> "EQDENT", "prolog", "EQDENT", "toplevel";
   prods[PROD_PROLOG]("prolog") >> "directive?", "DOC_START";
   prods[PROD_NO_DIRECT]("directive?");
   prods[PROD_ONE_DIRECT]("directive?") >> "directive";
   prods[PROD_DIRECT]("directive") >> "DIRECTIVE", "EQDENT";
   prods[PROD_DOC_START]("DOC_START") >> "-", "-", "-";
   prods[PROD_DIRECTIVE]("DIRECTIVE") >> "%", "CHAR*";
-  prods[PROD_TOPLEVEL]("toplevel") >> "block_map_items", "EQDENT", ".", ".", ".";
+  prods[PROD_TOPLEVEL]("toplevel") >> "block_map_items";
+  prods[PROD_TOPLEVEL_INDENT]("toplevel") >> "block_collective";
   prods[PROD_BMAP]("block_collective") >> "INDENT", "block_map_items", "DEDENT";
   prods[PROD_BSEQ]("block_collective") >> "INDENT", "block_sequence_items", "DEDENT";
   prods[PROD_BMAP_ONE_ITEM]("block_map_items") >> "block_map_item";
@@ -26,7 +27,9 @@ Language make_language() {
   prods[PROD_BSEQ_ITEM]("block_sequence_items") >> "block_sequence_item";
   prods[PROD_BSEQ_ITEMS]("block_sequence_items") >> "block_sequence_items", "EQDENT", "block_sequence_item";
   prods[PROD_BSEQ_SCALAR]("block_sequence_item") >> "BLOCK_SEQ", "scalar";
+  prods[PROD_BSEQ_END]("block_sequence_item") >> ".", ".", ".";
   prods[PROD_BMAP_ITEM]("block_map_item") >> "scalar", ":", "S?", "block_map_value";
+  prods[PROD_BMAP_END]("block_map_item") >> ".", ".", ".";
   prods[PROD_BMAP_SCALAR]("block_map_value") >> "scalar";
   prods[PROD_BMAP_BLOCK]("block_map_value") >> "block_collective";
   prods[PROD_BMAP_FLOW]("block_map_value") >> "flow_collective";
