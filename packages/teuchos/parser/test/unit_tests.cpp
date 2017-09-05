@@ -253,7 +253,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_reader ) {
   test_yaml_reader("%YAML 1.2\n---\nfoo:bar\n...\n");
   test_yaml_reader("---\nfoo:bar\nfar:boo\n...\n");
   test_yaml_reader("---\nfoo:\n  bar:42\n  baz:  100\n...\n");
-  test_yaml_reader("---\n foo:bar\n...\n");
+//test_yaml_reader("---\n foo:bar\n...\n");
   test_yaml_reader("---\n\"Don Knuth\":bar\n...\n");
   test_yaml_reader("---\n\"Don \\\"Maverick\\\" Knuth\":bar\n...\n");
   test_yaml_reader("---\n'never say never':true\n...\n");
