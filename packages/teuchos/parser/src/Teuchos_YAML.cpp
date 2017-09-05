@@ -54,7 +54,7 @@ Language make_language() {
   prods[PROD_RAW_DOT]("scalar") >> ".", "RAW_AFTER_DOT", "RAW_ANY*";
   prods[PROD_RAW_DASH]("scalar") >> "-", "RAW_AFTER_DASH", "RAW_ANY*";
   prods[PROD_RAW_OTHER]("scalar") >> "OTHERCHAR", "RAW_ANY*";
-  prods[PROD_DQUOTED]("scalar") >> "\"", "DQUOTED_CHAR*", "\"";
+  prods[PROD_DQUOTED]("scalar") >> "\"", "DQUOTED_CHAR*", "DQUOTED_CONTD*", "\"";
   prods[PROD_SQUOTED]("scalar") >> "'", "SQUOTED_CHAR*", "SQUOTED_CONTD*", "'";
   prods[PROD_BLOCK_SEQ]("BLOCK_SEQ") >> "-", "S";
   prods[PROD_COMMENT]("COMMENT") >> "#", "CHAR*";
@@ -72,9 +72,8 @@ Language make_language() {
   prods[PROD_NEXT_DQUOTED_CHAR]("DQUOTED_CHAR*") >> "DQUOTED_CHAR*", "DQUOTED_CHAR";
   prods[PROD_DQUOTED_CHAR_QUOTED]("DQUOTED_CHAR") >> "QUOTED_CHAR";
   prods[PROD_DQUOTED_CHAR_SQUOT]("DQUOTED_CHAR") >> "'";
-  prods[PROD_DQUOTED_CHAR_ESCAPE]("DQUOTED_CHAR") >> "\\", "DQUOTED_ESCAPED";
-  prods[PROD_DQUOTED_ESCAPED_CHAR]("DQUOTED_ESCAPED") >> "DQUOTED_CHAR";
-  prods[PROD_DQUOTED_ESCAPED_BSLASH]("DQUOTED_ESCAPED") >> "\\";
+  prods[PROD_NO_DQUOTED_CONTD]("DQUOTED_CONTD*");
+  prods[PROD_NEXT_DQUOTED_CONTD]("DQUOTED_CONTD*") >> "DQUOTED_CONTD*", "\\", "CHAR", "DQUOTED_CHAR*";
   prods[PROD_NO_SQUOTED_CHAR]("SQUOTED_CHAR*");
   prods[PROD_NEXT_SQUOTED_CHAR]("SQUOTED_CHAR*") >> "SQUOTED_CHAR*", "SQUOTED_CHAR";
   prods[PROD_NO_SQUOTED_CONTD]("SQUOTED_CONTD*");
