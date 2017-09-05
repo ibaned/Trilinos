@@ -241,6 +241,12 @@ static T& add(std::vector<T>& v) {
   return v.back();
 }
 
+void test_reader(ReaderTablesPtr tables, std::string const& str, std::string const& name) {
+  DebugReader reader(tables, std::cout);
+  any result;
+  reader.read_string(result, str, name);
+}
+
 TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   Language lang;
   Language::Productions& prods = lang.productions;
@@ -267,7 +273,9 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("any") >> ".";
   add(prods)("any") >> "OTHERCHAR";
   GrammarPtr grammar = make_grammar(lang);
-  make_lalr1_parser(grammar, true);
+//make_lalr1_parser(grammar, true);
+  auto tables = make_reader_tables(lang);
+  test_reader(tables, "a:b\n", "first");
 }
 
 /*
