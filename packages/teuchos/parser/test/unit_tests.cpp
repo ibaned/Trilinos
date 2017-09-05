@@ -238,7 +238,7 @@ TEUCHOS_UNIT_TEST( Parser, xml_reader ) {
 TEUCHOS_UNIT_TEST( Parser, yaml_language ) {
   LanguagePtr lang = yaml::ask_language();
   GrammarPtr grammar = make_grammar(*lang);
-  make_lalr1_parser(grammar);
+  make_lalr1_parser(grammar, true);
 }
 
 void test_yaml_reader(std::string const& str) {
