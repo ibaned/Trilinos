@@ -235,6 +235,42 @@ TEUCHOS_UNIT_TEST( Parser, xml_reader ) {
   test_xml_reader("<P name=\"foo&quot;&#72;bar\"/>");
 }
 
+template <typename T>
+static T& add(std::vector<T>& v) {
+  v.push_back(T());
+  return v.back();
+}
+
+TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
+  Language lang;
+  Language::Productions& prods = lang.productions;
+  Language::Tokens& toks = lang.tokens;
+  add(toks)("NODENT", "]NODENT[");
+  add(toks)("INDENT", "]INDENT[");
+  add(toks)("DEDENT", "]DEDENT[");
+  add(toks)("EQDENT", "]EQDENT[");
+  add(toks)("WS", "[ \t]");
+  add(toks)(":", ":");
+  add(toks)(".", "\\.");
+  add(toks)("OTHERCHAR", "[^ \t:\\.\n\r]");
+  add(prods)("doc") >> "EQDENT", "items";
+  add(prods)("items") >> "item";
+  add(prods)("items") >> "items", "item";
+  add(prods)("item") >> "scalar", ":", "INDENT", "items", "DEDENT";
+  add(prods)("item") >> "scalar", ":", "scalar", "EQDENT";
+  add(prods)("item") >> ".", ".", ".", "EQDENT";
+  add(prods)("scalar") >> ".", "OTHERCHAR", "any*";
+  add(prods)("scalar") >> "OTHERCHAR", "any*";
+  add(prods)("any*");
+  add(prods)("any*") >> "any*", "any";
+  add(prods)("any") >> "WS";
+  add(prods)("any") >> ".";
+  add(prods)("any") >> "OTHERCHAR";
+  GrammarPtr grammar = make_grammar(lang);
+  make_lalr1_parser(grammar, true);
+}
+
+/*
 TEUCHOS_UNIT_TEST( Parser, yaml_language ) {
   LanguagePtr lang = yaml::ask_language();
   GrammarPtr grammar = make_grammar(*lang);
@@ -273,6 +309,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_reader ) {
       "---\n#top comment\ntop entry: \n  sub-entry: twelve\n"
       "  # long comment\n  # about sub-entry2\n  sub-entry2: green\n...\n");
 }
+*/
 
 TEUCHOS_UNIT_TEST( Parser, mathexpr_language ) {
   LanguagePtr lang = MathExpr::ask_language();

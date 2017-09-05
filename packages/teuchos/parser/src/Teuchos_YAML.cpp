@@ -27,9 +27,7 @@ Language make_language() {
   prods[PROD_BSEQ_ITEM]("block_sequence_items") >> "block_sequence_item";
   prods[PROD_BSEQ_ITEMS]("block_sequence_items") >> "block_sequence_items", "EQDENT", "block_sequence_item";
   prods[PROD_BSEQ_SCALAR]("block_sequence_item") >> "BLOCK_SEQ", "scalar";
-  prods[PROD_BSEQ_END]("block_sequence_item") >> ".", ".", ".";
   prods[PROD_BMAP_ITEM]("block_map_item") >> "scalar", ":", "S?", "block_map_value";
-  prods[PROD_BMAP_END]("block_map_item") >> ".", ".", ".";
   prods[PROD_BMAP_SCALAR]("block_map_value") >> "scalar";
   prods[PROD_BMAP_BLOCK]("block_map_value") >> "block_collective";
   prods[PROD_BMAP_FLOW]("block_map_value") >> "flow_collective";

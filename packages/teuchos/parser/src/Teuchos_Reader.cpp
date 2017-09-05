@@ -140,8 +140,8 @@ void Reader::at_token_indent() {
     }
     if (first) lexer_text.clear();
     indent_text = lexer_indent;
-    lexer_token = tables->indent_info.eqdent_token;
-    at_token();
+//  lexer_token = tables->indent_info.eqdent_token;
+//  at_token();
   } else {
     if (0 != lexer_indent.compare(indent_text)) {
       indent_mismatch();
