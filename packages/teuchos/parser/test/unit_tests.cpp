@@ -262,7 +262,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("doc") >> "EQDENT", "items";
   add(prods)("items") >> "item";
   add(prods)("items") >> "items", "item";
-  add(prods)("item") >> "scalar", ":", "INDENT", "items", "DEDENT";
+  add(prods)("item") >> "scalar", ":", "EQDENT", "INDENT", "items", "DEDENT";
   add(prods)("item") >> "scalar", ":", "scalar", "EQDENT";
   add(prods)("item") >> ".", ".", ".", "EQDENT";
   add(prods)("scalar") >> ".", "OTHERCHAR", "any*";
@@ -274,8 +274,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("any") >> "OTHERCHAR";
   GrammarPtr grammar = make_grammar(lang);
 //make_lalr1_parser(grammar, true);
-  auto tables = make_reader_tables(lang);
-  test_reader(tables, "a:b\n", "first");
+  ReaderTablesPtr tables = make_reader_tables(lang);
+  test_reader(tables, "a:\n  c:d\ne:\n  g:h\n  i:j\n", "1");
 }
 
 /*

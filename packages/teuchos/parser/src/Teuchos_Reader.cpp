@@ -111,8 +111,12 @@ void Reader::at_token_indent() {
     at_token();
     return;
   }
+  lexer_token = tables->indent_info.eqdent_token;
+  at_token();
+  /* TODO: this doesn't work for windows line endings */
   TEUCHOS_ASSERT(at(lexer_text, 0) == '\n');
   std::string lexer_indent = lexer_text.substr(1, std::string::npos);
+  lexer_text.clear();
   std::size_t minlen = std::min(lexer_indent.length(), indent_text.length());
   if (lexer_indent.length() > indent_text.length()) {
     if (0 != lexer_indent.compare(0, indent_text.length(), indent_text)) {
@@ -126,28 +130,18 @@ void Reader::at_token_indent() {
     if (0 != indent_text.compare(0, lexer_indent.length(), lexer_indent)) {
       indent_mismatch();
     }
-    bool first = true;
     while (!indent_stack.empty()) {
       const IndentStackEntry& top = indent_stack.back();
       if (top.end_length <= minlen) break;
       indent_stack.pop_back();
       lexer_token = tables->indent_info.dedent_token;
       at_token();
-      if (first) {
-        lexer_text.clear();
-        first = false;
-      }
     }
-    if (first) lexer_text.clear();
     indent_text = lexer_indent;
-//  lexer_token = tables->indent_info.eqdent_token;
-//  at_token();
   } else {
     if (0 != lexer_indent.compare(indent_text)) {
       indent_mismatch();
     }
-    lexer_token = tables->indent_info.eqdent_token;
-    at_token();
   }
 }
 
