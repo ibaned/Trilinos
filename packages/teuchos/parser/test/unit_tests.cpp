@@ -284,7 +284,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("scalar") >> "-", "OTHERCHAR", "rest*";
   add(prods)("scalar") >> "\"", "dquoted*", "descape*", "\"";
   add(prods)("scalar") >> "'", "squoted*", "sescape*", "'";
-  add(prods)("bscalar") >> "|", "WS*", "NEWLINE", "INDENT", "bscalar_item", "DEDENT";
+  add(prods)("bscalar") >> "|", "WS*", "NEWLINE", "INDENT", "bscalar_items", "DEDENT";
   add(prods)("bscalar_items") >> "bscalar_item";
   add(prods)("bscalar_items") >> "bscalar_items", "bscalar_item";
   add(prods)("bscalar_item") >> "bscalar_char*", "NEWLINE";
@@ -349,6 +349,11 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "   - \"Lt. Pete \\\"Maverick\\\" Mitchell\"\n"
       "  c: 'single quoting is ''fun'''\n"
       "e:\n"
+      "  that code: |\n"
+      "    switch (a - b) {\n"
+      "      case 1: return '\\'';\n"
+      "      case 2: return '\\\"';\n"
+      "    }\n"
       "  g: .125\n"
       "  i: -6.022e-23\n"
       "...\n"
