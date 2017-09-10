@@ -262,7 +262,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(toks)("\"", "\"");
   add(toks)("'", "'");
   add(toks)("\\", "\\\\");
-  add(toks)("OTHERCHAR", "[^ \t:\\.\\-\"'\\\\\n\r]");
+  add(toks)("|", "\\|");
+  add(toks)("OTHERCHAR", "[^ \t:\\.\\-\"'\\\\\\|\n\r]");
   add(prods)("doc") >> "top_items";
   add(prods)("top_items") >> "top_item";
   add(prods)("top_items") >> "top_items", "top_item";
@@ -274,6 +275,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "scalar", "NEWLINE";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bmap_items", "DEDENT";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
+  add(prods)("bmap_item") >> "scalar", ":", "WS*", "bscalar";
   add(prods)("bseq_items") >> "bseq_item";
   add(prods)("bseq_items") >> "bseq_items", "bseq_item";
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
@@ -282,6 +284,11 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("scalar") >> "-", "OTHERCHAR", "rest*";
   add(prods)("scalar") >> "\"", "dquoted*", "descape*", "\"";
   add(prods)("scalar") >> "'", "squoted*", "sescape*", "'";
+  add(prods)("bscalar") >> "|", "WS*", "NEWLINE", "INDENT", "bscalar_item", "DEDENT";
+  add(prods)("bscalar_items") >> "bscalar_item";
+  add(prods)("bscalar_items") >> "bscalar_items", "bscalar_item";
+  add(prods)("bscalar_item") >> "bscalar_char*", "NEWLINE";
+  add(prods)("bscalar_item") >> "INDENT", "bscalar_items", "DEDENT";
   add(prods)("dquoted*");
   add(prods)("dquoted*") >> "dquoted*", "dquoted";
   add(prods)("squoted*");
@@ -306,6 +313,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("dquoted") >> ".";
   add(prods)("dquoted") >> "-";
   add(prods)("dquoted") >> "'";
+  add(prods)("dquoted") >> "|";
   add(prods)("dquoted") >> "OTHERCHAR";
   add(prods)("squoted") >> "WS";
   add(prods)("squoted") >> ":";
@@ -313,7 +321,17 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("squoted") >> "-";
   add(prods)("squoted") >> "\"";
   add(prods)("squoted") >> "\\";
+  add(prods)("squoted") >> "|";
   add(prods)("squoted") >> "OTHERCHAR";
+  add(prods)("bscalar_char") >> "WS";
+  add(prods)("bscalar_char") >> ":";
+  add(prods)("bscalar_char") >> ".";
+  add(prods)("bscalar_char") >> "-";
+  add(prods)("bscalar_char") >> "\"";
+  add(prods)("bscalar_char") >> "'";
+  add(prods)("bscalar_char") >> "\\";
+  add(prods)("bscalar_char") >> "|";
+  add(prods)("bscalar_char") >> "OTHERCHAR";
   add(prods)("WS*");
   add(prods)("WS*") >> "WS*", "WS";
   add(prods)("WS+") >> "WS";
