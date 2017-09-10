@@ -376,6 +376,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "    }\n"
       "  g: .125\n"
       "  i: -6.022e-23\n"
+      "  todo: [parse yaml, ???, profit]\n"
       "...\n"
       , "1");
 }
