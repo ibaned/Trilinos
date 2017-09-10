@@ -383,6 +383,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "   - one\n"
       "   - \"Lt. Pete \\\"Maverick\\\" Mitchell\"\n"
       "  c: 'single quoting is ''fun'''\n"
+      "  todo: [parse yaml, ???, profit]\n"
+      "  organisms: { plants: cocoa, animals: [birds, fish] }\n"
       "e:\n"
       "  that code: |\n"
       "    switch (a[i] - b[i]) {\n"
@@ -391,7 +393,6 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "    }\n"
       "  g: .125\n"
       "  i: -6.022e-23\n"
-      "  todo: [parse yaml, ???, profit]\n"
       "...\n"
       , "1");
 }
