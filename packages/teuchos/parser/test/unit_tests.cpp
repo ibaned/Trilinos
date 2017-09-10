@@ -293,6 +293,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("dquoted*") >> "dquoted*", "dquoted";
   add(prods)("squoted*");
   add(prods)("squoted*") >> "squoted*", "squoted";
+  add(prods)("bscalar_char*");
+  add(prods)("bscalar_char*") >> "bscalar_char*", "bscalar_char";
   add(prods)("descape*");
   add(prods)("descape*") >> "descape*", "descape";
   add(prods)("descape") >> "\\", "descaped", "dquoted*";
