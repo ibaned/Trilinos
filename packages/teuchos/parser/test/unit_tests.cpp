@@ -263,7 +263,9 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(toks)("'", "'");
   add(toks)("\\", "\\\\");
   add(toks)("|", "\\|");
-  add(toks)("OTHERCHAR", "[^ \t:\\.\\-\"'\\\\\\|\n\r]");
+  add(toks)("[", "\\[");
+  add(toks)("]", "\\]");
+  add(toks)("OTHERCHAR", "[^ \t:\\.\\-\"'\\\\\\|\\[\\]\n\r]");
   add(prods)("doc") >> "top_items";
   add(prods)("top_items") >> "top_item";
   add(prods)("top_items") >> "top_items", "top_item";
@@ -317,6 +319,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("dquoted") >> "-";
   add(prods)("dquoted") >> "'";
   add(prods)("dquoted") >> "|";
+  add(prods)("dquoted") >> "[";
+  add(prods)("dquoted") >> "]";
   add(prods)("dquoted") >> "OTHERCHAR";
   add(prods)("squoted") >> "WS";
   add(prods)("squoted") >> ":";
@@ -325,6 +329,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("squoted") >> "\"";
   add(prods)("squoted") >> "\\";
   add(prods)("squoted") >> "|";
+  add(prods)("squoted") >> "[";
+  add(prods)("squoted") >> "]";
   add(prods)("squoted") >> "OTHERCHAR";
   add(prods)("bscalar_char") >> "WS";
   add(prods)("bscalar_char") >> ":";
@@ -334,6 +340,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bscalar_char") >> "'";
   add(prods)("bscalar_char") >> "\\";
   add(prods)("bscalar_char") >> "|";
+  add(prods)("bscalar_char") >> "[";
+  add(prods)("bscalar_char") >> "]";
   add(prods)("bscalar_char") >> "OTHERCHAR";
   add(prods)("WS*");
   add(prods)("WS*") >> "WS*", "WS";
@@ -351,7 +359,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "  c: 'single quoting is ''fun'''\n"
       "e:\n"
       "  that code: |\n"
-      "    switch (a - b) {\n"
+      "    switch (a[i] - b[i]) {\n"
       "      case 1: return '\\'';\n"
       "      case 2: return '\\\"';\n"
       "    }\n"
