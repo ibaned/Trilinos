@@ -225,17 +225,17 @@ void Reader::read_stream(any& result, std::istream& stream, std::string const& s
     /* pretend the stream starts with a newline so we can
        detect an INDENT on the first line. don't update the
        line/column pointers though. */
-    char c = '\n';
-    lexer_text.push_back(c);
-    int lexer_symbol = get_symbol(c);
-    lexer_state = step(lexer, lexer_state, lexer_symbol);
-    TEUCHOS_ASSERT(lexer_state != -1);
-    lexer_token = accepts(lexer, lexer_state);
-    TEUCHOS_ASSERT(lexer_token == tables->indent_info.nodent_token);
-    last_lexer_accept = lexer_text.size();
-    last_lexer_accept_line = 1;
-    last_lexer_accept_column = 1;
-    last_lexer_accept_line_text = line_text;
+  //char c = '\n';
+  //lexer_text.push_back(c);
+  //int lexer_symbol = get_symbol(c);
+  //lexer_state = step(lexer, lexer_state, lexer_symbol);
+  //TEUCHOS_ASSERT(lexer_state != -1);
+  //lexer_token = accepts(lexer, lexer_state);
+  //TEUCHOS_ASSERT(lexer_token == tables->indent_info.nodent_token);
+  //last_lexer_accept = lexer_text.size();
+  //last_lexer_accept_line = 1;
+  //last_lexer_accept_column = 1;
+  //last_lexer_accept_line_text = line_text;
   } else {
     sensing_indent = false;
   }

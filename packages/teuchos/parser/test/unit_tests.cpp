@@ -259,7 +259,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(toks)(":", ":");
   add(toks)(".", "\\.");
   add(toks)("OTHERCHAR", "[^ \t:\\.\n\r]");
-  add(prods)("doc") >> "NEWLINE", "items";
+  add(prods)("doc") >> "items";
   add(prods)("items") >> "item";
   add(prods)("items") >> "items", "item";
   add(prods)("item") >> "scalar", ":", "NEWLINE", "INDENT", "items", "DEDENT";
