@@ -293,6 +293,9 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   test_reader(tables,
       "---\n"
       "a: \n"
+      "  b:\n"
+      "   - one\n"
+      "   - two\n"
       "  c: d\n"
       "e:\n"
       "  g: .125\n"
