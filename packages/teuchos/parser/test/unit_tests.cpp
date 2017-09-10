@@ -278,7 +278,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   GrammarPtr grammar = make_grammar(lang);
 //make_lalr1_parser(grammar, true);
   ReaderTablesPtr tables = make_reader_tables(lang);
-  test_reader(tables, "a:\n  c:d\ne:\n  g:h\n  i:j\n", "1");
+  test_reader(tables, "a:\n  c:d\ne:\n  g:h\n  i:j\n...\n", "1");
 }
 
 /*
