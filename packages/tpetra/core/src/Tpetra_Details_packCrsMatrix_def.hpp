@@ -426,14 +426,12 @@ packCrsMatrixRow (const ColumnMap& col_map,
   const size_t num_ent_beg = offset;
   const size_t num_ent_len = PackTraits<LO, BDT>::packValueCount (num_ent_LO);
 
-  const GO gid_example = 0; // packValueCount wants this
   const size_t gids_beg = num_ent_beg + num_ent_len;
-  const size_t gids_len = num_ent * PackTraits<GO, BDT>::packValueCount (gid_example);
+  const size_t gids_len = num_ent * PackTraits<GO, BDT>::packValueCount (GO (0));
 
-  const int pid = 0; // packValueCount wants this
   const size_t pids_beg = gids_beg + gids_len;
   const size_t pids_len = pack_pids ?
-    num_ent * PackTraits<int, BDT>::packValueCount (pid) :
+    num_ent * PackTraits<int, BDT>::packValueCount (int (0)) :
     static_cast<size_t> (0);
 
   const size_t vals_beg = gids_beg + gids_len + pids_len;
@@ -469,9 +467,13 @@ packCrsMatrixRow (const ColumnMap& col_map,
         num_bytes_out += PackTraits<int, BDT>::packValue (pids_out, k, pid);
       }
     }
-    // Copy the values
+    // mfh 05 Sep 2017: See #1673 for the reason why vals_in needs to
+    // be converted to an unmanaged BDT View.  It's important that it
+    // be unmanaged!
+    Kokkos::View<const ST*, BDT, Kokkos::MemoryUnmanaged>
+      vals_in_bdt (vals_in.data (), vals_in.dimension_0 ());
     const auto p =
-      PackTraits<ST, BDT>::packArray (vals_out, vals_in, num_ent);
+      PackTraits<ST, BDT>::packArray (vals_out, vals_in_bdt, num_ent);
     error_code += p.first;
     num_bytes_out += p.second;
   }
