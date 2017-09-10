@@ -268,19 +268,21 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(toks)("{", "{");
   add(toks)("}", "}");
   add(toks)(",", ",");
-  add(toks)("OTHERCHAR", "[^ \t:\\.\\-\"'\\\\\\|\\[\\]{},\n\r]");
+  add(toks)("%", "%");
+  add(toks)("OTHERCHAR", "[^ \t:\\.\\-\"'\\\\\\|\\[\\]{},%\n\r]");
   add(prods)("doc") >> "top_items";
   add(prods)("top_items") >> "top_item";
   add(prods)("top_items") >> "top_items", "top_item";
-  add(prods)("top_item") >> "bmap_item";
+  add(prods)("top_item") >> "%", "any*", "NEWLINE";
   add(prods)("top_item") >> "-", "-", "-", "NEWLINE";
   add(prods)("top_item") >> ".", ".", ".", "NEWLINE";
+  add(prods)("top_item") >> "bmap_item";
   add(prods)("bmap_items") >> "bmap_item";
   add(prods)("bmap_items") >> "bmap_items", "bmap_item";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "scalar", "NEWLINE";
+  add(prods)("bmap_item") >> "scalar", ":", "WS*", "bscalar";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bmap_items", "DEDENT";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
-  add(prods)("bmap_item") >> "scalar", ":", "WS*", "bscalar";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "fseq", "NEWLINE";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "fmap", "NEWLINE";
   add(prods)("bseq_items") >> "bseq_item";
@@ -288,8 +290,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "bscalar";
   add(prods)("bseq_item") >> "-", "WS+", "fseq", "NEWLINE";
-  add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
   add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
   add(prods)("fseq") >> "[", "WS*", "fseq_items", "]", "WS*";
   add(prods)("fseq_items") >> "fseq_item";
   add(prods)("fseq_items") >> "fseq_items", ",", "WS*", "fseq_item";
@@ -343,6 +345,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("dquoted") >> "{";
   add(prods)("dquoted") >> "}";
   add(prods)("dquoted") >> ",";
+  add(prods)("dquoted") >> "%";
   add(prods)("dquoted") >> "OTHERCHAR";
   add(prods)("squoted") >> "WS";
   add(prods)("squoted") >> ":";
@@ -356,6 +359,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("squoted") >> "{";
   add(prods)("squoted") >> "}";
   add(prods)("squoted") >> ",";
+  add(prods)("squoted") >> "%";
   add(prods)("squoted") >> "OTHERCHAR";
   add(prods)("bscalar_char") >> "WS";
   add(prods)("bscalar_char") >> ":";
@@ -370,7 +374,25 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bscalar_char") >> "{";
   add(prods)("bscalar_char") >> "}";
   add(prods)("bscalar_char") >> ",";
+  add(prods)("bscalar_char") >> "%";
   add(prods)("bscalar_char") >> "OTHERCHAR";
+  add(prods)("any*");
+  add(prods)("any*") >> "any*", "any";
+  add(prods)("any") >> "WS";
+  add(prods)("any") >> ":";
+  add(prods)("any") >> ".";
+  add(prods)("any") >> "-";
+  add(prods)("any") >> "\"";
+  add(prods)("any") >> "'";
+  add(prods)("any") >> "\\";
+  add(prods)("any") >> "|";
+  add(prods)("any") >> "[";
+  add(prods)("any") >> "]";
+  add(prods)("any") >> "{";
+  add(prods)("any") >> "}";
+  add(prods)("any") >> ",";
+  add(prods)("any") >> "%";
+  add(prods)("any") >> "OTHERCHAR";
   add(prods)("WS*");
   add(prods)("WS*") >> "WS*", "WS";
   add(prods)("WS+") >> "WS";
@@ -379,6 +401,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
 //make_lalr1_parser(grammar, true);
   ReaderTablesPtr tables = make_reader_tables(lang);
   test_reader(tables,
+      "%YAML 1.2\n"
       "---\n"
       "a: \n"
       "  b:\n"
