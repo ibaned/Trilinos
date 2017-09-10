@@ -288,6 +288,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "bscalar";
   add(prods)("bseq_item") >> "-", "WS+", "fseq", "NEWLINE";
+  add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
   add(prods)("fseq") >> "[", "WS*", "fseq_items", "]", "WS*";
   add(prods)("fseq_items") >> "fseq_item";
   add(prods)("fseq_items") >> "fseq_items", ",", "WS*", "fseq_item";
