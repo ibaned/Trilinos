@@ -259,12 +259,12 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(toks)(":", ":");
   add(toks)(".", "\\.");
   add(toks)("OTHERCHAR", "[^ \t:\\.\n\r]");
-  add(prods)("doc") >> "items";
-  add(prods)("items") >> "item";
-  add(prods)("items") >> "items", "item";
-  add(prods)("item") >> "scalar", ":", "NEWLINE", "INDENT", "items", "DEDENT";
-  add(prods)("item") >> "scalar", ":", "scalar", "NEWLINE";
-  add(prods)("item") >> ".", ".", ".", "NEWLINE";
+  add(prods)("doc") >> "top_items";
+  add(prods)("top_items") >> "top_item";
+  add(prods)("top_items") >> "top_items", "top_item";
+  add(prods)("top_item") >> "scalar", ":", "NEWLINE", "INDENT", "top_items", "DEDENT";
+  add(prods)("top_item") >> "scalar", ":", "scalar", "NEWLINE";
+  add(prods)("top_item") >> ".", ".", ".", "NEWLINE";
   add(prods)("scalar") >> ".", "OTHERCHAR", "any*";
   add(prods)("scalar") >> "OTHERCHAR", "any*";
   add(prods)("any*");
