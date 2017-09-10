@@ -327,7 +327,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "  b:\n"
       "   - one\n"
       "   - \"Lt. Pete \\\"Maverick\\\" Mitchell\"\n"
-      "  c: d\n"
+      "  c: 'single quoting is ''fun'''\n"
       "e:\n"
       "  g: .125\n"
       "  i: -6.022e-23\n"
