@@ -268,7 +268,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("top_item") >> ".", ".", ".", "NEWLINE";
   add(prods)("bmap_items") >> "bmap_item";
   add(prods)("bmap_items") >> "bmap_items", "bmap_item";
-  add(prods)("bmap_item") >> "scalar", ":", "NEWLINE", "INDENT", "bmap_items", "DEDENT";
+  add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bmap_items", "DEDENT";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "scalar", "NEWLINE";
   add(prods)("scalar") >> "OTHERCHAR", "any*";
   add(prods)("scalar") >> ".", "OTHERCHAR", "any*";
