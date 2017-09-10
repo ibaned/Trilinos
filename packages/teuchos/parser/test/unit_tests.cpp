@@ -279,6 +279,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_items") >> "bseq_item";
   add(prods)("bseq_items") >> "bseq_items", "bseq_item";
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
+  add(prods)("bseq_item") >> "-", "WS+", "bscalar";
   add(prods)("scalar") >> "OTHERCHAR", "rest*";
   add(prods)("scalar") >> ".", "OTHERCHAR", "rest*";
   add(prods)("scalar") >> "-", "OTHERCHAR", "rest*";
