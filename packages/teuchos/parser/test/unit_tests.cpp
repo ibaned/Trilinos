@@ -310,7 +310,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "a: \n"
       "  b:\n"
       "   - one\n"
-      "   - two\n"
+      "   - \"Lt. Pete \\\"Maverick\\\" Mitchell\"\n"
       "  c: d\n"
       "e:\n"
       "  g: .125\n"
