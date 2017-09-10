@@ -269,7 +269,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bmap_items") >> "bmap_item";
   add(prods)("bmap_items") >> "bmap_items", "bmap_item";
   add(prods)("bmap_item") >> "scalar", ":", "NEWLINE", "INDENT", "bmap_items", "DEDENT";
-  add(prods)("bmap_item") >> "scalar", ":", "scalar", "NEWLINE";
+  add(prods)("bmap_item") >> "scalar", ":", "WS*", "scalar", "NEWLINE";
   add(prods)("scalar") >> "OTHERCHAR", "any*";
   add(prods)("scalar") >> ".", "OTHERCHAR", "any*";
   add(prods)("scalar") >> "-", "OTHERCHAR", "any*";
@@ -279,6 +279,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("any") >> ".";
   add(prods)("any") >> "-";
   add(prods)("any") >> "OTHERCHAR";
+  add(prods)("WS*");
+  add(prods)("WS*") >> "WS*", "WS";
   GrammarPtr grammar = make_grammar(lang);
 //make_lalr1_parser(grammar, true);
   ReaderTablesPtr tables = make_reader_tables(lang);
