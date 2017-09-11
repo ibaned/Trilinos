@@ -282,8 +282,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bmap_items") >> "bmap_items", "bmap_item", "comment*";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "scalar", "NEWLINE";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "bscalar";
-  add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bmap_items", "DEDENT";
-  add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
+  add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "comment*", "bmap_items", "DEDENT";
+  add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "fseq", "NEWLINE";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "fmap", "NEWLINE";
   add(prods)("bseq_items") >> "bseq_item";
@@ -291,8 +291,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "bscalar";
   add(prods)("bseq_item") >> "-", "WS+", "fseq", "NEWLINE";
-  add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
-  add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "bseq_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
   add(prods)("fseq") >> "[", "WS*", "fseq_items", "]", "WS*";
   add(prods)("fseq_items") >> "fseq_item";
   add(prods)("fseq_items") >> "fseq_items", ",", "WS*", "fseq_item";
@@ -410,6 +410,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   test_reader(tables,
       "%YAML 1.2\n"
       "---\n"
+      "#top comment always wins\n"
       "a: \n"
       "  b:\n"
       "   - one\n"
