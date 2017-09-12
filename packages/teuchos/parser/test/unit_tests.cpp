@@ -302,11 +302,12 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("fseq_items") >> "fseq_items", ",", "WS*", "fseq_item";
   add(prods)("fseq_item") >> "scalar";
   add(prods)("fseq_item") >> "fseq";
+  add(prods)("fseq_item") >> "fmap";
   add(prods)("fmap_items") >> "fmap_item";
   add(prods)("fmap_items") >> "fmap_items", ",", "WS*", "fmap_item";
   add(prods)("fmap_item") >> "scalar", ":", "WS*", "scalar";
-  add(prods)("fmap_item") >> "scalar", ":", "WS*", "fmap";
   add(prods)("fmap_item") >> "scalar", ":", "WS*", "fseq";
+  add(prods)("fmap_item") >> "scalar", ":", "WS*", "fmap";
   add(prods)("scalar") >> "OTHERCHAR", "rest*";
   add(prods)("scalar") >> ".", "OTHERCHAR", "rest*";
   add(prods)("scalar") >> "-", "OTHERCHAR", "rest*";
@@ -429,7 +430,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "     - treees\n"
       "  c: 'single quoting is ''fun'''\n"
       "  todo: [parse yaml, ???, profit]\n"
-      "  organisms: { plants: cocoa, animals: [birds, fish] }\n"
+      "  organisms: { plants: cocoa, animals: [birds, {next: fish}] }\n"
       "e:\n"
       "  that code: |\n"
       "    switch (a[i] - b[i]) {\n"
