@@ -242,7 +242,7 @@ static T& add(std::vector<T>& v) {
 }
 
 void test_reader(ReaderTablesPtr tables, std::string const& str, std::string const& name) {
-  DebugReader reader(tables, std::cout);
+  Reader reader(tables);
   any result;
   reader.read_string(result, str, name);
 }
@@ -368,7 +368,6 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("WS+") >> "WS";
   add(prods)("WS+") >> "WS+", "WS";
   GrammarPtr grammar = make_grammar(lang);
-  make_lalr1_parser(grammar, true);
   ReaderTablesPtr tables = make_reader_tables(lang);
   test_reader(tables,
       "%YAML 1.2\n"
