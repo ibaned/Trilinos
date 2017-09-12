@@ -291,14 +291,15 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "bscalar";
   add(prods)("bseq_item") >> "-", "WS+", "fseq", "NEWLINE";
-  add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "WS+", "fmap", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
   add(prods)("fseq") >> "[", "WS*", "fseq_items", "]", "WS*";
+  add(prods)("fmap") >> "{", "WS*", "fmap_items", "}", "WS*";
   add(prods)("fseq_items") >> "fseq_item";
   add(prods)("fseq_items") >> "fseq_items", ",", "WS*", "fseq_item";
   add(prods)("fseq_item") >> "scalar";
   add(prods)("fseq_item") >> "fseq";
-  add(prods)("fmap") >> "{", "WS*", "fmap_items", "}", "WS*";
   add(prods)("fmap_items") >> "fmap_item";
   add(prods)("fmap_items") >> "fmap_items", ",", "WS*", "fmap_item";
   add(prods)("fmap_item") >> "scalar", ":", "WS*", "scalar";
@@ -309,13 +310,13 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("scalar") >> "-", "OTHERCHAR", "rest*";
   add(prods)("scalar") >> "\"", "dquoted*", "descape*", "\"";
   add(prods)("scalar") >> "'", "squoted*", "sescape*", "'";
+  add(prods)("comment*");
+  add(prods)("comment*") >> "comment*", "#", "any*", "NEWLINE";
   add(prods)("bscalar") >> "|", "WS*", "NEWLINE", "INDENT", "bscalar_items", "DEDENT";
   add(prods)("bscalar_items") >> "bscalar_item";
   add(prods)("bscalar_items") >> "bscalar_items", "bscalar_item";
   add(prods)("bscalar_item") >> "bscalar_char*", "NEWLINE";
   add(prods)("bscalar_item") >> "INDENT", "bscalar_items", "DEDENT";
-  add(prods)("comment*");
-  add(prods)("comment*") >> "comment*", "#", "any*", "NEWLINE";
   add(prods)("dquoted*");
   add(prods)("dquoted*") >> "dquoted*", "dquoted";
   add(prods)("squoted*");
@@ -418,7 +419,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "   -\n"
       "     - \n"
       "       - tres\n"
-      "       - trees\n"
+      "       - [tre, es]\n"
+      "       - {tre: ees}\n"
       "     - treees\n"
       "  c: 'single quoting is ''fun'''\n"
       "  todo: [parse yaml, ???, profit]\n"
