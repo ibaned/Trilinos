@@ -242,7 +242,7 @@ static T& add(std::vector<T>& v) {
 }
 
 void test_reader(ReaderTablesPtr tables, std::string const& str, std::string const& name) {
-  Reader reader(tables);
+  DebugReader reader(tables, std::cout);
   any result;
   reader.read_string(result, str, name);
 }
@@ -278,7 +278,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("top_item") >> "-", "-", "-", "NEWLINE", "comment*";
   add(prods)("top_item") >> ".", ".", ".", "NEWLINE";
   add(prods)("top_item") >> "bmap_item";
-  add(prods)("bmap_items") >> "bmap_item";
+  add(prods)("bmap_items") >> "bmap_item", "comment*";
   add(prods)("bmap_items") >> "bmap_items", "bmap_item", "comment*";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "scalar", "NEWLINE";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "bscalar";
@@ -286,7 +286,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "fseq", "NEWLINE";
   add(prods)("bmap_item") >> "scalar", ":", "WS*", "fmap", "NEWLINE";
-  add(prods)("bseq_items") >> "bseq_item";
+  add(prods)("bseq_items") >> "bseq_item", "comment*";
   add(prods)("bseq_items") >> "bseq_items", "bseq_item", "comment*";
   add(prods)("bseq_item") >> "-", "WS+", "scalar", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "bscalar";
@@ -368,124 +368,124 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("WS+") >> "WS";
   add(prods)("WS+") >> "WS+", "WS";
   GrammarPtr grammar = make_grammar(lang);
-//make_lalr1_parser(grammar, true);
+  make_lalr1_parser(grammar, true);
   ReaderTablesPtr tables = make_reader_tables(lang);
-  test_reader(tables,
-      "%YAML 1.2\n"
-      "---\n"
-      "#top comment always wins\n"
-      "a: \n"
-      "  b:\n"
-      "   - one\n"
-      "   - \"Lt. Pete \\\"Maverick\\\" Mitchell\"\n"
-      "   -\n"
-      "     - \n"
-      "       - tres\n"
-      "       - [tre, es]\n"
-      "       - {tre: ees}\n"
-      "       - \n"
-      "         #why?\n"
-      "         because: we can.\n"
-      "     - treees\n"
-      "  c: 'single quoting is ''fun'''\n"
-      "  todo: [parse yaml, ???, profit]\n"
-      "  organisms: { plants: cocoa, animals: [birds, {next: fish}] }\n"
-      "e:\n"
-      "  that code: |\n"
-      "    switch (a[i] - b[i]) {\n"
-      "      case 1: return '\\'';\n"
-      "      case 2: return '\\\"';\n"
-      "    }\n"
-      "  g: .125\n"
-      "  i: -6.022e-23\n"
-      "...\n"
-      , "1");
-  test_reader(tables,
-      "---\n"
-      "lvl1-1:\n"
-      "  lvl2-1: a\n"
-      "lvl1-2:\n"
-      "  lvl2-2: b\n"
-      "...\n",
-      "2");
-  test_reader(tables,"---\n"
-      "foo:bar\n"
-      "...\n",
-      "3");
-  test_reader(tables,"%YAML 1.2\n"
-      "---\n"
-      "foo:bar\n"
-      "...\n",
-      "4");
-  test_reader(tables,"---\n"
-      "foo:bar\n"
-      "far:boo\n"
-      "...\n",
-      "5");
-  test_reader(tables,"---\n"
-      "foo:\n"
-      "  bar:42\n"
-      "  baz:  100\n"
-      "...\n",
-      "6");
-  test_reader(tables,
-      "---\n"
-      "\"Don Knuth\":bar\n"
-      "...\n",
-      "7");
-  test_reader(tables,
-      "---\n"
-      "'never say never':true\n"
-      "...\n",
-      "8");
-  test_reader(tables,
-      "---\n"
-      "'never say ''never''':true\n"
-      "...\n",
-      "9");
-  test_reader(tables,
-      "---\n"
-      "1:\n"
-      " - a\n"
-      " - b\n"
-      "...\n",
-      "11");
-  test_reader(tables,
-      "---\n"
-      "a: {1: 1, 2: 4, 3: 9}\n"
-      "...\n",
-      "12");
-  test_reader(tables,
-      "---\n"
-      "a: [1, 2, 3]\n"
-      "...\n",
-      "13");
-  test_reader(tables,"---\n"
-      "a: {1: [0, 1], 2: [0, 1, 2]}\n"
-      "...\n",
-      "14");
-  test_reader(tables,
-      "---\n"
-      "assocs: [[bottom, 1], [top, 42]]\n"
-      "...\n",
-      "15");
-  test_reader(tables,
-      "---\n"
-      "assocs: [ [ bottom , 1 ] , [ top , 42 ] ]\n"
-      "...\n",
-      "16");
-  test_reader(tables,
-      "---\n"
-      "pressure: -1.9e-6\n"
-      "volume: 0.7e+10\n"
-      "...\n",
-      "17");
-  test_reader(tables,
-      "---\n"
-      "Lord of the Rings:\n"
-      "  - Sauron\n"
-      "...\n",
-      "20");
+//test_reader(tables,
+//    "%YAML 1.2\n"
+//    "---\n"
+//    "#top comment always wins\n"
+//    "a: \n"
+//    "  b:\n"
+//    "   - one\n"
+//    "   - \"Lt. Pete \\\"Maverick\\\" Mitchell\"\n"
+//    "   -\n"
+//    "     - \n"
+//    "       - tres\n"
+//    "       - [tre, es]\n"
+//    "       - {tre: ees}\n"
+//    "       - \n"
+//    "         #why?\n"
+//    "         because: we can.\n"
+//    "     - treees\n"
+//    "  c: 'single quoting is ''fun'''\n"
+//    "  todo: [parse yaml, ???, profit]\n"
+//    "  organisms: { plants: cocoa, animals: [birds, {next: fish}] }\n"
+//    "e:\n"
+//    "  that code: |\n"
+//    "    switch (a[i] - b[i]) {\n"
+//    "      case 1: return '\\'';\n"
+//    "      case 2: return '\\\"';\n"
+//    "    }\n"
+//    "  g: .125\n"
+//    "  i: -6.022e-23\n"
+//    "...\n"
+//    , "1");
+//test_reader(tables,
+//    "---\n"
+//    "lvl1-1:\n"
+//    "  lvl2-1: a\n"
+//    "lvl1-2:\n"
+//    "  lvl2-2: b\n"
+//    "...\n",
+//    "2");
+//test_reader(tables,"---\n"
+//    "foo:bar\n"
+//    "...\n",
+//    "3");
+//test_reader(tables,"%YAML 1.2\n"
+//    "---\n"
+//    "foo:bar\n"
+//    "...\n",
+//    "4");
+//test_reader(tables,"---\n"
+//    "foo:bar\n"
+//    "far:boo\n"
+//    "...\n",
+//    "5");
+//test_reader(tables,"---\n"
+//    "foo:\n"
+//    "  bar:42\n"
+//    "  baz:  100\n"
+//    "...\n",
+//    "6");
+//test_reader(tables,
+//    "---\n"
+//    "\"Don Knuth\":bar\n"
+//    "...\n",
+//    "7");
+//test_reader(tables,
+//    "---\n"
+//    "'never say never':true\n"
+//    "...\n",
+//    "8");
+//test_reader(tables,
+//    "---\n"
+//    "'never say ''never''':true\n"
+//    "...\n",
+//    "9");
+//test_reader(tables,
+//    "---\n"
+//    "1:\n"
+//    " - a\n"
+//    " - b\n"
+//    "...\n",
+//    "11");
+//test_reader(tables,
+//    "---\n"
+//    "a: {1: 1, 2: 4, 3: 9}\n"
+//    "...\n",
+//    "12");
+//test_reader(tables,
+//    "---\n"
+//    "a: [1, 2, 3]\n"
+//    "...\n",
+//    "13");
+//test_reader(tables,"---\n"
+//    "a: {1: [0, 1], 2: [0, 1, 2]}\n"
+//    "...\n",
+//    "14");
+//test_reader(tables,
+//    "---\n"
+//    "assocs: [[bottom, 1], [top, 42]]\n"
+//    "...\n",
+//    "15");
+//test_reader(tables,
+//    "---\n"
+//    "assocs: [ [ bottom , 1 ] , [ top , 42 ] ]\n"
+//    "...\n",
+//    "16");
+//test_reader(tables,
+//    "---\n"
+//    "pressure: -1.9e-6\n"
+//    "volume: 0.7e+10\n"
+//    "...\n",
+//    "17");
+//test_reader(tables,
+//    "---\n"
+//    "Lord of the Rings:\n"
+//    "  - Sauron\n"
+//    "...\n",
+//    "20");
   test_reader(tables,
       "---\n"
       "#top comment\n"
