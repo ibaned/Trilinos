@@ -294,6 +294,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_item") >> "-", "WS+", "fmap", "NEWLINE";
   add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
   add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "WS+", "NEWLINE", "INDENT", "comment*", "bmap_items", "DEDENT";
+  add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "comment*", "bmap_items", "DEDENT";
   add(prods)("fseq") >> "[", "WS*", "fseq_items", "]", "WS*";
   add(prods)("fmap") >> "{", "WS*", "fmap_items", "}", "WS*";
   add(prods)("fseq_items") >> "fseq_item";
@@ -421,6 +423,9 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "       - tres\n"
       "       - [tre, es]\n"
       "       - {tre: ees}\n"
+      "       - \n"
+      "         #why?\n"
+      "         because: we can.\n"
       "     - treees\n"
       "  c: 'single quoting is ''fun'''\n"
       "  todo: [parse yaml, ???, profit]\n"
