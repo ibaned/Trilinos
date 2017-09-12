@@ -298,6 +298,8 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(prods)("bseq_item") >> "-", "NEWLINE", "INDENT", "comment*", "bmap_items", "DEDENT";
   add(prods)("fseq") >> "[", "WS*", "fseq_items", "]", "WS*";
   add(prods)("fmap") >> "{", "WS*", "fmap_items", "}", "WS*";
+  add(prods)("fseq") >> "[", "WS*", "]", "WS*";
+  add(prods)("fmap") >> "{", "WS*", "}", "WS*";
   add(prods)("fseq_items") >> "fseq_item";
   add(prods)("fseq_items") >> "fseq_items", ",", "WS*", "fseq_item";
   add(prods)("fseq_item") >> "scalar";
@@ -479,6 +481,20 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "volume: 0.7e+10\n"
       "...\n",
       "17");
+  test_reader(tables,
+      "---\n"
+      "ANONYMOUS:\n"
+      "  empty: {}\n"
+      "  non-empty: 1.5\n"
+      "...\n",
+      "18");
+  test_reader(tables,
+      "---\n"
+      "ANONYMOUS:\n"
+      "  empty: { }\n"
+      "  non-empty: 1.5\n"
+      "...\n",
+      "19");
   test_reader(tables,
       "---\n"
       "Lord of the Rings:\n"
