@@ -132,7 +132,7 @@ void make_dfa(FiniteAutomaton& result, std::string const& name, std::string cons
   using std::swap;
   /* special "regex"es for indentation sensitivity support */
   if (regex == "]INDENT[" || regex == "]DEDENT[" || regex == "]EQDENT[" || regex == "]NODENT[") {
-    make_dfa(result, name, "\r?\n[ \t]*", token);
+    make_dfa(result, name, "(\r?\n)+[ \t]*", token);
     return;
   }
   regex::Reader reader(token);

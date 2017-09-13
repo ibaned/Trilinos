@@ -485,14 +485,22 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "---\n"
       "ANONYMOUS:\n"
       "  empty: {}\n"
-      "  non-empty: 1.5\n"
+      "  block with empty line: |\n"
+      "\n"
+      "    check one two\n"
+      "\n"
+      "      more indented\n"
       "...\n",
       "18");
   test_reader(tables,
       "---\r\n"
       "ANONYMOUS:\r\n"
       "  empty: { }\r\n"
-      "  non-empty: 1.5\r\n"
+      "  block with empty line: |\r\n"
+      "\r\n"
+      "    check one two\r\n"
+      "\r\n"
+      "      more indented\r\n"
       "...\r\n",
       "19");
   test_reader(tables,
