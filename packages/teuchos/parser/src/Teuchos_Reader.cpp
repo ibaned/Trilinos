@@ -112,9 +112,12 @@ void Reader::at_token_indent(std::istream& stream) {
   }
   lexer_token = tables->indent_info.eqdent_token;
   at_token(stream);
-  /* TODO: this doesn't work for windows line endings */
-  TEUCHOS_ASSERT(at(lexer_text, 0) == '\n');
-  std::string lexer_indent = lexer_text.substr(1, std::string::npos);
+  std::size_t end_of_actual_newlines = 0;
+  for (; end_of_actual_newlines < lexer_text.size(); ++end_of_actual_newlines) {
+    char c = lexer_text[end_of_actual_newlines];
+    if (c != '\n' && c != '\r') break;
+  }
+  std::string lexer_indent = lexer_text.substr(end_of_actual_newlines, std::string::npos);
   lexer_text.clear();
   std::size_t minlen = std::min(lexer_indent.length(), indent_text.length());
   if (lexer_indent.length() > indent_text.length()) {
