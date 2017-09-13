@@ -489,11 +489,11 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
       "...\n",
       "18");
   test_reader(tables,
-      "---\n"
-      "ANONYMOUS:\n"
-      "  empty: { }\n"
-      "  non-empty: 1.5\n"
-      "...\n",
+      "---\r\n"
+      "ANONYMOUS:\r\n"
+      "  empty: { }\r\n"
+      "  non-empty: 1.5\r\n"
+      "...\r\n",
       "19");
   test_reader(tables,
       "---\n"
