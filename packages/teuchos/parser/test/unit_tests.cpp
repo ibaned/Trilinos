@@ -484,7 +484,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   test_reader(tables,
       "---\n"
       "pressure: -1.9e-6\n"
-      "volume: 0.7e+10\n"
+      "volume: !!double 0.7e+10\n"
       "...\n",
       "17");
   test_reader(tables,
