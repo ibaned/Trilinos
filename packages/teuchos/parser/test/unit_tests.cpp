@@ -251,10 +251,9 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   Language lang;
   Language::Productions& prods = lang.productions;
   Language::Tokens& toks = lang.tokens;
-  add(toks)("NODENT", "]NODENT[");
+  add(toks)("NEWLINE", "]NEWLINE[");
   add(toks)("INDENT", "]INDENT[");
   add(toks)("DEDENT", "]DEDENT[");
-  add(toks)("NEWLINE", "]NEWLINE[");
   add(toks)("WS", "[ \t]");
   add(toks)(":", ":");
   add(toks)(".", "\\.");

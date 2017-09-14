@@ -106,11 +106,10 @@ void Reader::indent_mismatch() {
 }
 
 void Reader::at_token_indent(std::istream& stream) {
-  if (!sensing_indent || lexer_token != tables->indent_info.nodent_token) {
+  if (!sensing_indent || lexer_token != tables->indent_info.newline_token) {
     at_token(stream);
     return;
   }
-  lexer_token = tables->indent_info.newline_token;
   at_token(stream);
   std::size_t end_of_actual_newlines = 0;
   for (; end_of_actual_newlines < lexer_text.size(); ++end_of_actual_newlines) {

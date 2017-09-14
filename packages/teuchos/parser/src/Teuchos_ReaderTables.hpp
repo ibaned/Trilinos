@@ -57,7 +57,6 @@ struct IndentInfo {
   int indent_token;
   int dedent_token;
   int newline_token;
-  int nodent_token;
 };
 
 /** \brief Parser and lexer tables specifying how to read a Language. */
