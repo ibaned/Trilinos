@@ -254,7 +254,7 @@ TEUCHOS_UNIT_TEST( Parser, yaml_proxy_language ) {
   add(toks)("NODENT", "]NODENT[");
   add(toks)("INDENT", "]INDENT[");
   add(toks)("DEDENT", "]DEDENT[");
-  add(toks)("NEWLINE", "]EQDENT[");
+  add(toks)("NEWLINE", "]NEWLINE[");
   add(toks)("WS", "[ \t]");
   add(toks)(":", ":");
   add(toks)(".", "\\.");
