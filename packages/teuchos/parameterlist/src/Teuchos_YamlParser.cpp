@@ -60,8 +60,9 @@ namespace Teuchos {
 template <typename T>
 bool is_parseable_as(std::string const& text) {
   std::istringstream ss(text);
-  T value;
-  return (ss >> value);
+  T val;
+  ss >> std::noskipws >> val;
+  return ss.eof() && !ss.fail();
 }
 
 template <typename T>
@@ -639,78 +640,6 @@ class Reader : public Teuchos::Reader {
   }
 };
 
-/* see https://github.com/jbeder/yaml-cpp/issues/261
-   there are times when we want to insist that a parameter
-   value be interpreted as a string despite it being parseable
-   as a number.
-   the standard way to do this in YAML is to put the number in quotes,
-   i.e. '1e-3' instead of 1e-3.
-   however, the usual YAML::Node::as<T> system doesn't respect quoting
-   when trying to cast to numbers.
-   so, this is our own version of as<T>, called quoted_as<T>, using
-   the Tag workaround suggested in the issue linked above. */
-
-template <typename T>
-struct QuotedAs {
-  static T eval(YAML::Node const& node) {
-    // this "!" tag apparently denotes that the value was quoted
-    if (node.Tag() == "!") {
-      throw std::runtime_error("quoted_as from quoted string to number");
-    }
-    return node.as<T>();
-  }
-};
-
-template <>
-struct QuotedAs<std::string> {
-  // only a cast to string will succeed if quoted
-  static std::string eval(YAML::Node const& node) { return node.as<std::string>(); }
-};
-
-template <typename T>
-static T quoted_as(YAML::Node const& node) { return QuotedAs<T>::eval(node); }
-
-template<typename T> Teuchos::Array<T> getYamlArray(const YAML::Node& node)
-{
-  Teuchos::Array<T> arr;
-  for(YAML::const_iterator it = node.begin(); it != node.end(); it++)
-  {
-    arr.push_back(quoted_as<T>(*it));
-  }
-  return arr;
-}
-
-void checkYamlTwoDArray(const YAML::Node& node, const std::string& key)
-{
-  for (YAML::const_iterator it = node.begin(); it != node.end(); ++it)
-  {
-    if (it->size() != node.begin()->size())
-    {
-      throw YamlSequenceError(std::string("TwoDArray \"") + key + "\" has irregular sizes");
-    }
-  }
-}
-
-template<typename T> Teuchos::TwoDArray<T> getYamlTwoDArray(const YAML::Node& node)
-{
-  Teuchos::TwoDArray<T> arr;
-  typename Teuchos::TwoDArray<T>::size_type i, j;
-  arr.resizeRows(node.size());
-  arr.resizeCols(node.begin()->size());
-  i = 0;
-  for (YAML::const_iterator rit = node.begin(); rit != node.end(); ++rit)
-  {
-    j = 0;
-    for (YAML::const_iterator cit = rit->begin(); cit != rit->end(); ++cit)
-    {
-      arr(i, j) = quoted_as<T>(*cit);
-      ++j;
-    }
-    ++i;
-  }
-  return arr;
-}
-
 /* Helper functions */
 
 void updateParametersFromYamlFile(const std::string& yamlFileName,
@@ -815,270 +744,34 @@ void convertXmlToYaml(std::istream& xmlStream, std::ostream& yamlStream)
   YAMLParameterList::writeYamlStream(yamlStream, *toConvert);
 }
 
-bool haveSameValuesUnordered(const Teuchos::ParameterList& lhs, const Teuchos::ParameterList& rhs, bool verbose)
-{
-  typedef Teuchos::ParameterList::ConstIterator Iter;
-  Iter i = lhs.begin();
-  Iter j = rhs.begin();
-  if(lhs.name() != rhs.name())
-  {
-    if(verbose)
-    {
-      std::cout << "Parameter list names: \"" << lhs.name() << "\" and \"" << rhs.name() << "\".\n";
-    }
-    return false;
-  }
-  for(; i != lhs.end(); i++)
-  {
-    const std::string& key = lhs.name(i);
-    const Teuchos::ParameterEntry& val1 = lhs.entry(i);
-    //check that rhs also contains this key
-    if(!rhs.isParameter(key))
-    {
-      if(verbose)
-      {
-        std::cout << "One list is missing parameter: \"" << key << "\"\n";
-      }
-      return false;
-    }
-    const Teuchos::ParameterEntry& val2 = rhs.getEntry(key);
-    const Teuchos::any& any1 = val1.getAny(false);
-    const Teuchos::any& any2 = val2.getAny(false);
-    //check that types match
-    if(any1.type() != any2.type())
-    {
-      if(verbose)
-      {
-        std::cout << "Values for key \"" << key << "\" have different types: \"" <<
-          any1.typeName() << "\" vs \"" << any2.typeName() << "\"\n";
-      }
-      return false;
-    }
-    //check for parameter list special case (don't use operator==)
-    if(any1.type() == typeid(Teuchos::ParameterList))
-    {
-      if(!haveSameValuesUnordered(Teuchos::any_cast<Teuchos::ParameterList>(any1), Teuchos::any_cast<Teuchos::ParameterList>(any2), verbose))
-      {
-        //Don't need to print message here, the deepest list not matching will do that
-        return false;
-      }
-    }
-    else
-    {
-      //otherwise, use == to compare the values
-      if(!(val1 == val2))
-      {
-        if(verbose)
-        {
-          std::cout << "Values for key \"" << key << "\" are different.\n";
-        }
-        return false;
-      }
-    }
-    j++;
-  }
-  //lists must have same # of entries
-  if(j != rhs.end())
-  {
-    if(verbose)
-    {
-      std::cout << "Lists \"" << lhs.name() << "\" and \"" << rhs.name() << "\" have different number of parameters.\n";
-    }
-    return false;
-  }
-  return true;
-}
-
 namespace YAMLParameterList
 {
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 {
-  Teuchos::ParameterList pl;
-  std::vector<YAML::Node> baseMap = YAML::LoadAll(text);
-  return readParams(baseMap);
-}
-
-Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const char* text)
-{
-  Teuchos::ParameterList pl;
-  std::vector<YAML::Node> baseMap = YAML::LoadAll(text);
-  return readParams(baseMap);
+  YAMLParameterList::Reader reader;
+  any result;
+  reader.read_string(result, text, "parseYamlText");
+  ParameterList& pl = any_ref_cast<ParameterList>(result);
+  return Teuchos::rcp(new ParameterList(pl));
 }
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlFile(const std::string& yamlFile)
 {
-  std::vector<YAML::Node> baseMap = YAML::LoadAllFromFile(yamlFile);
-  return readParams(baseMap);
+  YAMLParameterList::Reader reader;
+  any result;
+  reader.read_file(result, yamlFile);
+  ParameterList& pl = any_ref_cast<ParameterList>(result);
+  return Teuchos::rcp(new ParameterList(pl));
 }
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlStream(std::istream& yaml)
 {
-  std::vector<YAML::Node> baseMap = YAML::LoadAll(yaml);
-  return readParams(baseMap);
-}
-
-Teuchos::RCP<Teuchos::ParameterList> readParams(std::vector<YAML::Node>& lists)
-{
-  Teuchos::RCP<Teuchos::ParameterList> pl = rcp(new Teuchos::ParameterList); //pl is the root ParameterList to be returned
-  //If there is exactly one element in "lists", assume it is the anonymous top-level parameter list
-  //If there are more than one, place them all in the anonymous top-level list
-  for(size_t i = 0; i < lists.size(); i++)
-  {
-    processMapNode(lists[i], *pl, true);
-  }
-  return pl;
-}
-
-void processMapNode(const YAML::Node& node, Teuchos::ParameterList& parent, bool topLevel)
-{
-  if(node.Type() != YAML::NodeType::Map)
-  {
-    throw YamlStructureError("All top-level elements of the YAML file must be maps.");
-  }
-  if(topLevel)
-  {
-    parent.setName("ANONYMOUS");
-    processMapNode(node.begin()->second, parent);
-  }
-  else
-  {
-    for(YAML::const_iterator i = node.begin(); i != node.end(); i++)
-    {
-      //make sure the key type is a string
-      if(i->first.Type() != YAML::NodeType::Scalar)
-      {
-        throw YamlKeyError("Keys must be plain strings");
-      }
-      //if this conversion fails and throws for any reason (shouldn't), let the caller handle it
-      const std::string key = quoted_as<std::string>(i->first);
-      processKeyValueNode(key, i->second, parent, topLevel);
-    }
-  }
-}
-
-void processKeyValueNode(const std::string& key, const YAML::Node& node, Teuchos::ParameterList& parent, bool topLevel)
-{
-  //node (value) type can be a map (for nested param lists),
-  //a scalar (int, double, string), or a sequence of doubles (vector<double>)
-  if(node.Type() == YAML::NodeType::Scalar)
-  {
-    try
-    {
-      parent.set(key, quoted_as<int>(node));
-    }
-    catch(...)
-    {
-      try
-      {
-        parent.set(key, quoted_as<double>(node));
-      }
-      catch(...)
-      {
-        try
-        {
-          std::string rawString = quoted_as<std::string>(node);
-          if(rawString == "true")
-          {
-            parent.set<bool>(key, true);
-          }
-          else if(rawString == "false")
-          {
-            parent.set<bool>(key, false);
-          }
-          else
-          {
-            parent.set(key, rawString);
-          }
-        }
-        catch(...)
-        {
-          throw YamlScalarError("YAML scalars must be int, double, bool or string.");
-        }
-      }
-    }
-  }
-  else if(node.Type() == YAML::NodeType::Map)
-  {
-    if(topLevel)
-    {
-      processMapNode(node, parent);
-    }
-    else
-    {
-      Teuchos::ParameterList& sublist = parent.sublist(key);
-      processMapNode(node, sublist);
-    }
-  }
-  else if(node.Type() == YAML::NodeType::Sequence)
-  {
-    if (node.begin()->Type() == YAML::NodeType::Sequence) {
-      checkYamlTwoDArray(node, key);
-      YAML::Node const& first_value = *(node.begin()->begin());
-      try
-      {
-        quoted_as<int>(first_value);
-        parent.set(key, getYamlTwoDArray<int>(node));
-      }
-      catch(...)
-      {
-        try
-        {
-          quoted_as<double>(first_value);
-          parent.set(key, getYamlTwoDArray<double>(node));
-        }
-        catch(...)
-        {
-          try
-          {
-            quoted_as<std::string>(first_value);
-            parent.set(key, getYamlTwoDArray<std::string>(node));
-          }
-          catch(...)
-          {
-            throw YamlSequenceError(std::string("TwoDArray \"") + key + "\" must contain int, double, bool or string");
-          }
-        }
-      }
-    } else {
-      YAML::Node const& first_value = *(node.begin());
-      try
-      {
-        quoted_as<int>(first_value);
-        parent.set(key, getYamlArray<int>(node));
-      }
-      catch(...)
-      {
-        try
-        {
-          quoted_as<double>(first_value);
-          parent.set(key, getYamlArray<double>(node));
-        }
-        catch(...)
-        {
-          try
-          {
-            quoted_as<std::string>(first_value);
-            parent.set(key, getYamlArray<std::string>(node));
-          }
-          catch(...)
-          {
-            throw YamlSequenceError(std::string("Array \"") + key + "\" must contain int, double, bool or string");
-          }
-        }
-      }
-    }
-  }
-  else if(node.Type() == YAML::NodeType::Null)
-  {
-    //treat NULL as empty string (not an error)
-    parent.set(key, std::string());
-  }
-  else
-  {
-    //Undefined
-    throw YamlUndefinedNodeError("Value type in a key-value pair must be one of: int, double, string, array, sublist.");
-  }
+  YAMLParameterList::Reader reader;
+  any result;
+  reader.read_stream(result, yaml, "parseYamlStream");
+  ParameterList& pl = any_ref_cast<ParameterList>(result);
+  return Teuchos::rcp(new ParameterList(pl));
 }
 
 void writeYamlStream(std::ostream& yaml, const Teuchos::ParameterList& pl)
@@ -1321,14 +1014,6 @@ void generalWriteDouble(double d, std::ostream& yaml)
   yaml << d;
 }
 
-template <typename T>
-static bool canBeParsedAs(std::string const& s) {
-  std::istringstream iss(s);
-  T val;
-  iss >> std::noskipws >> val;
-  return iss.eof() && !iss.fail();
-}
-
 static bool containsSpecialCharacters(std::string const& s) {
   char const* const control_chars = ":{}[],&*#?|-<>=!%@\\";
   return s.find_first_of(control_chars) != std::string::npos;
@@ -1337,8 +1022,8 @@ static bool containsSpecialCharacters(std::string const& s) {
 bool stringNeedsQuotes(const std::string& s)
 {
   return containsSpecialCharacters(s) ||
-         canBeParsedAs<int>(s) ||
-         canBeParsedAs<double>(s);
+         is_parseable_as<int>(s) ||
+         is_parseable_as<double>(s);
 }
 
 } //namespace YAMLParameterList
