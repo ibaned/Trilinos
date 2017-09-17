@@ -55,6 +55,9 @@
 #include "Teuchos_YamlParameterListCoreHelpers.hpp"
 #include "Teuchos_TwoDArray.hpp"
 
+#include "Teuchos_Reader.hpp"
+#include "Teuchos_YAML.hpp"
+
 namespace Teuchos {
 
 template <typename T>
@@ -119,14 +122,16 @@ class Reader : public Teuchos::Reader {
   virtual void at_shift(any& result_any, int token, std::string& text) {
     using std::swap;
     switch (token) {
-      case Teuchos::YAML::TOK_NEWLINE:
+      case Teuchos::YAML::TOK_NEWLINE: {
         std::string& result = make_any_ref<std::string>(result_any);
         swap(result, text);
         break;
+      }
       case Teuchos::YAML::TOK_SPACE:
-      case Teuchos::YAML::TOK_OTHERCHAR:
+      case Teuchos::YAML::TOK_OTHER: {
         result_any = text.at(0);
         break;
+      }
     }
   }
   virtual void at_reduce(any& result_any, int prod, std::vector<any>& rhs) {
@@ -164,20 +169,20 @@ class Reader : public Teuchos::Reader {
         map_item(result_any, rhs.at(0), rhs.at(4), scalar_type);
         break;
       }
-      case Teuchos::YAML::PROD_BMAP_BCALAR: {
+      case Teuchos::YAML::PROD_BMAP_BSCALAR: {
         map_item(result_any, rhs.at(0), rhs.at(3), Scalar::STRING);
         break;
       }
       case Teuchos::YAML::PROD_BMAP_BMAP: {
-        map_item(result_any, rhs.at(0), rhs.at(6), Scalar::STRING);
+        map_item(result_any, rhs.at(0), rhs.at(6));
         break;
       }
       case Teuchos::YAML::PROD_BMAP_BSEQ: {
-        map_item(result_any, rhs.at(0), rhs.at(6), Scalar::STRING);
+        map_item(result_any, rhs.at(0), rhs.at(6));
         break;
       }
       case Teuchos::YAML::PROD_BMAP_FMAP: {
-        map_item(result_any, rhs.at(0), rhs.at(4), Scalar::STRING);
+        map_item(result_any, rhs.at(0), rhs.at(4));
         break;
       }
       case Teuchos::YAML::PROD_BMAP_FSEQ: {
@@ -216,7 +221,7 @@ class Reader : public Teuchos::Reader {
         swap(result_any, rhs.at(5));
         break;
       }
-      case Teuchos::YAML::PROD_BSEQ_BSEQ_FSEQ: {
+      case Teuchos::YAML::PROD_BSEQ_FSEQ: {
         swap(result_any, rhs.at(3));
         break;
       }
@@ -225,11 +230,11 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_FMAP_EMPTY: {
-        ParameterList& list = make_any_ref<ParameterList>(result_any);
+        result_any = ParameterList();
         break;
       }
       case Teuchos::YAML::PROD_FSEQ_EMPTY: {
-        Array<Scalar>& array = make_any_ref<Array<Scalar> >(result_any);
+        result_any = Array<Scalar>();
         break;
       }
       case Teuchos::YAML::PROD_FSEQ_FIRST: {
@@ -237,7 +242,7 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_FSEQ_NEXT: {
-        seq_first_item(result_any, rhs.at(0), rhs.at(3));
+        seq_next_item(result_any, rhs.at(0), rhs.at(3));
         break;
       }
       case Teuchos::YAML::PROD_FSEQ_SCALAR: {
@@ -287,7 +292,7 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_TAG: {
-        swap(rest, rhs.at(2));
+        swap(result_any, rhs.at(2));
         break;
       }
       case Teuchos::YAML::PROD_BSCALAR: {
@@ -297,7 +302,7 @@ class Reader : public Teuchos::Reader {
         if (leading_indent[0] == '\r') newline = "\r\n";
         else newline = "\n";
         // leading_indent may start with multiple newlines
-        leading_indent = newline + leading_indent.substr(leading_indent.find_first_of(" \t");
+        leading_indent = newline + leading_indent.substr(leading_indent.find_first_of(" \t"));
         // un-indent the entire block of text
         std::size_t next_spot;
         while ((next_spot = str.find(leading_indent)) != std::string::npos) {
@@ -354,11 +359,11 @@ class Reader : public Teuchos::Reader {
         break;
       }
       // all these cases reduce to appending a character
-      case Teuchos::YAML::PROD_BSCALAR_DQUOTED_NEXT:
-      case Teuchos::YAML::PROD_BSCALAR_SQUOTED_NEXT:
-      case Teuchos::YAML::PROD_BSCALAR_ANY_NEXT:
-      case Teuchos::YAML::PROD_BSCALAR_REST_NEXT:
-      case Teuchos::YAML::PROD_BSCALAR_OTHER_NEXT:
+      case Teuchos::YAML::PROD_DQUOTED_NEXT:
+      case Teuchos::YAML::PROD_SQUOTED_NEXT:
+      case Teuchos::YAML::PROD_ANY_NEXT:
+      case Teuchos::YAML::PROD_REST_NEXT:
+      case Teuchos::YAML::PROD_OTHER_NEXT:
       case Teuchos::YAML::PROD_SPACE_STAR_NEXT:
       case Teuchos::YAML::PROD_SPACE_PLUS_NEXT: {
         swap(result_any, rhs.at(0));
@@ -456,18 +461,20 @@ class Reader : public Teuchos::Reader {
     PLPair& pair = any_ref_cast<PLPair>(next_item);
     list.set(pair.key, pair.value);
   }
-  void map_item(any& result_any, any& key_any, any& value_any) {
+  void map_item(any& result_any, any& key_any, any& value_any, int scalar_type = -1) {
     using std::swap;
     PLPair& result = make_any_ref<PLPair>(result_any);
     {
       std::string& key = any_ref_cast<Scalar>(key_any).text;
       swap(result.key, key);
     }
-    resolve_map_value(value_any);
+    resolve_map_value(value_any, scalar_type);
     if (value_any.type() == typeid(int)) {
-      result.value = any_cast<int>(value_any);
+      int value = any_cast<int>(value_any);
+      result.value = ParameterEntry(value);
     } else if (value_any.type() == typeid(double)) {
-      result.value = any_cast<double>(value_any);
+      double value = any_cast<double>(value_any);
+      result.value = ParameterEntry(value);
     } else if (value_any.type() == typeid(std::string)) {
       std::string& value = any_ref_cast<std::string >(value_any);
       result.value = ParameterEntry(value);
@@ -592,14 +599,14 @@ class Reader : public Teuchos::Reader {
   }
   int interpret_tag(any& tag_any) {
     if (tag_any.type() != typeid(std::string)) return -1;
-    std::string& text = any_ref_cast<std:string>(tag_any);
+    std::string& text = any_ref_cast<std::string>(tag_any);
     if (text.find("int") != std::string::npos) return Scalar::INT;
     else if (text.find("double") != std::string::npos) return Scalar::DOUBLE;
     else if (text.find("string") != std::string::npos) return Scalar::STRING;
     else {
       std::string msg = "Unable to parse type tag \"";
-      msg += text
-      msg += "\"\n"
+      msg += text;
+      msg += "\"\n";
       throw ParserFail(msg);
     }
   }
@@ -737,19 +744,18 @@ void convertXmlToYaml(const std::string& xmlFileName, const std::string& yamlFil
 void convertXmlToYaml(std::istream& xmlStream, std::ostream& yamlStream)
 {
   //read xmlStream into a string until EOF
-  std::string xmlString(std::istreambuf_iterator<char>(xmlStream), {});
+  std::istreambuf_iterator<char> begin(xmlStream);
+  std::istreambuf_iterator<char> end;
+  std::string xmlString(begin, end);
   //load the parameter list from xml
   Teuchos::RCP<Teuchos::ParameterList> toConvert = Teuchos::getParametersFromXmlString(xmlString);
   //replace the file extension ".xml" with ".yaml", or append it if there was no extension
   YAMLParameterList::writeYamlStream(yamlStream, *toConvert);
 }
 
-namespace YAMLParameterList
-{
-
 Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 {
-  YAMLParameterList::Reader reader;
+  Teuchos::YAMLParameterList::Reader reader;
   any result;
   reader.read_string(result, text, "parseYamlText");
   ParameterList& pl = any_ref_cast<ParameterList>(result);
@@ -758,7 +764,7 @@ Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlFile(const std::string& yamlFile)
 {
-  YAMLParameterList::Reader reader;
+  Teuchos::YAMLParameterList::Reader reader;
   any result;
   reader.read_file(result, yamlFile);
   ParameterList& pl = any_ref_cast<ParameterList>(result);
@@ -767,7 +773,7 @@ Teuchos::RCP<Teuchos::ParameterList> parseYamlFile(const std::string& yamlFile)
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlStream(std::istream& yaml)
 {
-  YAMLParameterList::Reader reader;
+  Teuchos::YAMLParameterList::Reader reader;
   any result;
   reader.read_stream(result, yaml, "parseYamlStream");
   ParameterList& pl = any_ref_cast<ParameterList>(result);
@@ -777,7 +783,7 @@ Teuchos::RCP<Teuchos::ParameterList> parseYamlStream(std::istream& yaml)
 void writeYamlStream(std::ostream& yaml, const Teuchos::ParameterList& pl)
 {
   //warn the user if floats/doubles with integer values will be printed incorrectly
-  auto flags = yaml.flags();
+  std::ios_base::fmtflags flags = yaml.flags();
   //make temporary stringstream to test flags
   std::ostringstream testStream;
   testStream.flags(flags);
@@ -792,7 +798,7 @@ void writeYamlStream(std::ostream& yaml, const Teuchos::ParameterList& pl)
     //note: in YAML, "5." is a double but not an int
     std::cout << "Warning: yaml stream format flags would confuse double with integer value with int.\n";
     std::cout << "Setting std::ios::showpoint on the stream to fix this (will restore flags when done)\n";
-    auto flagsCopy = flags;
+    std::ios_base::fmtflags flagsCopy = flags;
     flagsCopy |= std::ios::showpoint;
     popFlags = true;
   }
@@ -816,7 +822,7 @@ void writeYamlStream(std::ostream& yaml, const Teuchos::ParameterList& pl)
 
 void writeYamlFile(const std::string& yamlFile, const Teuchos::ParameterList& pl)
 {
-  std::ofstream yaml(yamlFile);
+  std::ofstream yaml(yamlFile.c_str());
   /* set default floating-point style:
      1. 17 decimal places to ensure the value remains the same
      2. scientific: this prevents floating-point values that happen
