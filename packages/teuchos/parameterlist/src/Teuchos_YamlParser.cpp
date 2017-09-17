@@ -647,6 +647,8 @@ class Reader : public Teuchos::Reader {
   }
 };
 
+} // end namespace YAMLParameterList
+
 /* Helper functions */
 
 void updateParametersFromYamlFile(const std::string& yamlFileName,
@@ -714,6 +716,8 @@ void writeParameterListToYamlFile(
 {
   YAMLParameterList::writeYamlFile(yamlFileName, paramList);
 }
+
+namespace YAMLParameterList {
 
 std::string convertXmlToYaml(const std::string& xmlFileName)
 {
