@@ -36,9 +36,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Questions? Contact
-//                    Jonathan Hu       (jhu@sandia.gov)
-//                    Andrey Prokopenko (aprokop@sandia.gov)
-//                    Ray Tuminaro      (rstumin@sandia.gov)
+//                    Dan Ibanez        (daibane@sandia.gov)
 //
 // ***********************************************************************
 //
@@ -57,8 +55,407 @@
 #include "Teuchos_YamlParameterListCoreHelpers.hpp"
 #include "Teuchos_TwoDArray.hpp"
 
-namespace Teuchos
-{
+namespace Teuchos {
+
+template <typename T>
+bool is_parseable_as(std::string const& text) {
+  std::istringstream ss(text);
+  T value;
+  return (ss >> value);
+}
+
+template <typename T>
+T parse_as(std::string const& text) {
+  std::istringstream ss(text);
+  T value;
+  ss >> value;
+  return value;
+}
+
+struct PLPair {
+  std::string key;
+  ParameterEntry value;
+};
+
+struct Scalar {
+  enum Source {
+    RAW,
+    DQUOTED,
+    SQUOTED,
+    BLOCK
+  };
+  /* order matters, a higher type should be convertible to a lower type */
+  enum Type {
+    STRING = 0,
+    DOUBLE = 1,
+    INT    = 2
+  };
+  int source;
+  int tagged_type;
+  std::string text;
+  int infer_type() const {
+    if (tagged_type != -1) return tagged_type;
+    if (source != RAW) return STRING;
+    if (is_parseable_as<int>(text)) return INT;
+    if (is_parseable_as<double>(text)) return DOUBLE;
+    return STRING;
+  }
+};
+
+bool operator==(PLPair const&, PLPair const&) { return false; }
+bool operator<<(std::ostream& os, PLPair const&) { return os; }
+
+bool operator==(Scalar const&, Scalar const&) { return false; }
+bool operator<<(std::ostream& os, Scalar const&) { return os; }
+
+namespace YAMLParameterList {
+
+class Reader : public Teuchos::Reader {
+ public:
+  Reader():Teuchos::Reader(Teuchos::YAML::ask_reader_tables()) {}
+  virtual ~Reader() {}
+ protected:
+  virtual void at_shift(any& result_any, int token, std::string& text) {
+    using std::swap;
+    switch (token) {
+      case Teuchos::YAML::TOK_NEWLINE:
+        std::string& result = make_any_ref<std::string>(result_any);
+        swap(result, text);
+        break;
+      case Teuchos::YAML::TOK_SPACE:
+      case Teuchos::YAML::TOK_OTHERCHAR:
+        result_any = text.at(0);
+        break;
+    }
+  }
+  virtual void at_reduce(any& result_any, int prod, std::vector<any>& rhs) {
+    using std::swap;
+    switch (prod) {
+      case Teuchos::YAML::PROD_DOC:
+      case Teuchos::YAML::PROD_TOP_BMAP: {
+        swap(result_any, rhs.at(0));
+        break;
+      }
+      case Teuchos::YAML::PROD_TOP_FIRST: {
+        if (rhs.at(0).type() != typeid(PLPair)) break;
+        map_first_item(result_any, rhs.at(0));
+        break;
+      }
+      case Teuchos::YAML::PROD_TOP_NEXT: {
+        if (rhs.at(1).type() != typeid(PLPair)) break;
+        if (rhs.at(0).type() == typeid(ParameterList)) {
+          map_next_item(result_any, rhs.at(0), rhs.at(1));
+        } else {
+          map_first_item(result_any, rhs.at(0));
+        }
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_FIRST: {
+        map_first_item(result_any, rhs.at(0));
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_NEXT: {
+        map_next_item(result_any, rhs.at(0), rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_SCALAR: {
+        int scalar_type = interpret_tag(rhs.at(3));
+        map_item(result_any, rhs.at(0), rhs.at(4), scalar_type);
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_BCALAR: {
+        map_item(result_any, rhs.at(0), rhs.at(3), Scalar::STRING);
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_BMAP: {
+        map_item(result_any, rhs.at(0), rhs.at(6), Scalar::STRING);
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_BSEQ: {
+        map_item(result_any, rhs.at(0), rhs.at(6), Scalar::STRING);
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_FMAP: {
+        map_item(result_any, rhs.at(0), rhs.at(4), Scalar::STRING);
+        break;
+      }
+      case Teuchos::YAML::PROD_BMAP_FSEQ: {
+        int scalar_type = interpret_tag(rhs.at(3));
+        map_item(result_any, rhs.at(0), rhs.at(4), scalar_type);
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_FIRST: {
+        seq_first_item(result_any, rhs.at(0));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_NEXT: {
+        seq_next_item(result_any, rhs.at(0), rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_SCALAR: {
+        swap(result_any, rhs.at(3));
+        Scalar& scalar = any_ref_cast<Scalar>(result_any);
+        scalar.tagged_type = interpret_tag(rhs.at(2));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_BSCALAR: {
+        swap(result_any, rhs.at(2));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_BMAP:
+      case Teuchos::YAML::PROD_BSEQ_BMAP_TRAIL:
+      case Teuchos::YAML::PROD_BSEQ_FMAP: {
+        throw ParserFail("Can't interpret a map inside a sequence as a Teuchos Parameter");
+      }
+      case Teuchos::YAML::PROD_BSEQ_BSEQ: {
+        swap(result_any, rhs.at(4));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_BSEQ_TRAIL: {
+        swap(result_any, rhs.at(5));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSEQ_BSEQ_FSEQ: {
+        swap(result_any, rhs.at(3));
+        break;
+      }
+      case Teuchos::YAML::PROD_FMAP: {
+        swap(result_any, rhs.at(2));
+        break;
+      }
+      case Teuchos::YAML::PROD_FMAP_EMPTY: {
+        ParameterList& list = make_any_ref<ParameterList>(result_any);
+        break;
+      }
+      case Teuchos::YAML::PROD_FSEQ_EMPTY: {
+        Array<Scalar>& array = make_any_ref<Array<Scalar> >(result_any);
+        break;
+      }
+      case Teuchos::YAML::PROD_FSEQ_FIRST: {
+        seq_first_item(result_any, rhs.at(0));
+        break;
+      }
+      case Teuchos::YAML::PROD_FSEQ_NEXT: {
+        seq_first_item(result_any, rhs.at(0), rhs.at(3));
+        break;
+      }
+      case Teuchos::YAML::PROD_FSEQ_SCALAR: {
+        swap(result_any, rhs.at(1));
+        Scalar& scalar = any_ref_cast<Scalar>(result_any);
+        scalar.tagged_type = interpret_tag(rhs.at(0));
+        break;
+      }
+      case Teuchos::YAML::PROD_FSEQ_FSEQ: {
+      case Teuchos::YAML::PROD_FSEQ_FMAP: {
+        swap(result_any, rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_SCALAR_NORMAL: {
+        char first = any_cast<char>(rhs.at(0));
+        std::string& str = any_ref_cast<std::string>(rhs.at(1));
+        Scalar& scalar = make_any_ref<Scalar>(result_any);
+        swap(scalar.text, str);
+        scalar.text.insert(0, 1, first);
+        scalar.source = Scalar::RAW;
+        break;
+      }
+    }
+  }
+  void map_first_item(any& result_any, any& first_item) {
+    ParameterList& list = make_any_ref<ParameterList>(result_any);
+    PLPair& pair = any_ref_cast<PLPair>(first_item);
+    list.set(pair.key, pair.value);
+  }
+  void map_next_item(any& result_any, any& items, any& next_item) {
+    using std::swap;
+    swap(result_any, items);
+    ParameterList& list = any_ref_cast<ParameterList>(result_any);
+    PLPair& pair = any_ref_cast<PLPair>(next_item);
+    list.set(pair.key, pair.value);
+  }
+  void map_item(any& result_any, any& key_any, any& value_any) {
+    using std::swap;
+    PLPair& result = make_any_ref<PLPair>(result_any);
+    {
+      std::string& key = any_ref_cast<Scalar>(key_any).text;
+      swap(result.key, key);
+    }
+    resolve_map_value(value_any);
+    if (value_any.type() == typeid(int)) {
+      result.value = any_cast<int>(value_any);
+    } else if (value_any.type() == typeid(double)) {
+      result.value = any_cast<double>(value_any);
+    } else if (value_any.type() == typeid(std::string)) {
+      std::string& value = any_ref_cast<std::string >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(Array<int>)) {
+      Array<int>& value = any_ref_cast<Array<int> >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(Array<double>)) {
+      Array<double>& value = any_ref_cast<Array<double> >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(Array<std::string>)) {
+      Array<std::string>& value = any_ref_cast<Array<std::string> >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(TwoDArray<int>)) {
+      TwoDArray<int>& value = any_ref_cast<TwoDArray<int> >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(TwoDArray<double>)) {
+      TwoDArray<double>& value = any_ref_cast<TwoDArray<double> >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(TwoDArray<std::string>)) {
+      TwoDArray<std::string>& value = any_ref_cast<TwoDArray<std::string> >(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(ParameterList)) {
+      ParameterList& value = any_ref_cast<ParameterList>(value_any);
+      ParameterList& result_pl = result.value.setList();
+      swap(result_pl, value);
+    } else {
+      std::string msg = "unexpected YAML map value type ";
+      msg += value_any.type().name();
+      msg += " for key \"";
+      msg += result.key;
+      msg += "\"\n";
+      throw ParserFail(msg);
+    }
+  }
+  void resolve_map_value(any& value_any, int scalar_type = -1) const {
+    if (value_any.type() == typeid(Scalar)) {
+      Scalar& scalar_value = any_ref_cast<Scalar>(value_any);
+      if (scalar_type == -1) {
+        scalar_type = scalar_value.infer_type();
+      }
+      if (scalar_type == Scalar::INT) {
+        value_any = parse_as<int>(scalar_value.text);
+      } else if (scalar_type == Scalar::DOUBLE) {
+        value_any = parse_as<double>(scalar_value.text);
+      } else {
+        value_any = scalar_value.text;
+      }
+    } else if (value_any.type() == typeid(Array<Scalar>)) {
+      Array<Scalar>& scalars = any_ref_cast<Array<Scalar> >(value_any);
+      if (scalars.size() == 0) {
+        throw ParserFail("implicitly typed arrays can't be empty\n"
+                         "(need to determine their element type)\n");
+      }
+      for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+        scalar_type = std::min(scalar_type, scalars[i].infer_type());
+      }
+      if (scalar_type == Scalar::INT) {
+        Array<int> result(scalars.size());
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          result[i] = parse_as<int>(scalars[i].text);
+        }
+        value_any = result;
+      } else if (scalar_type == Scalar::DOUBLE) {
+        Array<double> result(scalars.size());
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          result[i] = parse_as<double>(scalars[i].text);
+        }
+        value_any = result;
+      } else if (scalar_type == Scalar::STRING) {
+        Array<std::string> result(scalars.size());
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          result[i] = scalars[i].text;
+        }
+        value_any = result;
+      }
+    } else if (value_any.type() == typeid(Array<Array<Scalar> >)) {
+      Array<Array<Scalar> >& scalars = any_ref_cast<Array<Array<Scalar> > >(value_any);
+      if (scalar_type == -1) {
+        if (scalars.size() == 0) {
+          throw ParserFail("implicitly typed 2D arrays can't be empty\n"
+                           "(need to determine their element type)\n");
+        }
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          if (scalars[0].size() == 0) {
+            throw ParserFail("implicitly typed 2D arrays can't have empty rows\n"
+                             "(need to determine their element type)\n");
+          }
+          if (scalars[i].size() != scalars[0].size()) {
+            throw ParserFail("2D array: sub-arrays are different sizes");
+          }
+          for (Teuchos_Ordinal j = 0; j < scalars.size(); ++j) {
+            scalar_type = std::min(scalar_type, scalars[i][j].infer_type());
+          }
+        }
+      }
+      if (scalar_type == Scalar::INT) {
+        TwoDArray<int> result(scalars.size(), scalars[0].size());
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          for (Teuchos_Ordinal j = 0; j < scalars[0].size(); ++j) {
+            result(i, j) = parse_as<int>(scalars[i][j].text);
+          }
+        }
+        value_any = result;
+      } else if (scalar_type == Scalar::DOUBLE) {
+        TwoDArray<double> result(scalars.size(), scalars[0].size());
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          for (Teuchos_Ordinal j = 0; j < scalars[0].size(); ++j) {
+            result(i, j) = parse_as<double>(scalars[i][j].text);
+          }
+        }
+        value_any = result;
+      } else if (scalar_type == Scalar::STRING) {
+        TwoDArray<std::string> result(scalars.size(), scalars[0].size());
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          for (Teuchos_Ordinal j = 0; j < scalars[0].size(); ++j) {
+            result(i, j) = scalars[i][j].text;
+          }
+        }
+        value_any = result;
+      }
+    }
+  }
+  int interpret_tag(any& tag_any) {
+    if (tag_any.type() != typeid(std::string)) return -1;
+    std::string& text = any_ref_cast<std:string>(tag_any);
+    if (text.find("int") != std::string::npos) return Scalar::INT;
+    else if (text.find("double") != std::string::npos) return Scalar::DOUBLE;
+    else if (text.find("string") != std::string::npos) return Scalar::STRING;
+    else {
+      std::string msg = "Unable to parse type tag \"";
+      msg += text
+      msg += "\"\n"
+      throw ParserFail(msg);
+    }
+  }
+  void seq_first_item(any& result_any, any& first_any) {
+    using std::swap;
+    if (first_any.type() == typeid(Scalar)) {
+      Array<Scalar>& a = make_any_ref<Array<Scalar> >(result_any);
+      Scalar& v = any_ref_cast<Scalar>(first_any);
+      a.push_back(Scalar());
+      swap(a.back(), v);
+    } else if (first_any.type() == typeid(Array<Scalar>)) {
+      Array<Array<Scalar> >& a = make_any_ref<Array<Array<Scalar> > >(result_any);
+      Array<Scalar>& v = any_ref_cast<Array<Scalar> >(first_any);
+      a.push_back(Array<Scalar>());
+      swap(a.back(), v);
+    } else {
+      throw Teuchos::ParserFail(
+          "bug in YAMLParameterList::Reader: unexpected type for first sequence item");
+    }
+  }
+  void seq_next_item(any& result_any, any& items, any& next_item) {
+    using std::swap;
+    swap(result_any, items);
+    if (result_any.type() == typeid(Array<Scalar>)) {
+      Array<Scalar>& a = any_ref_cast<Array<Scalar> >(result_any);
+      Scalar& val = any_ref_cast<Scalar>(next_item);
+      a.push_back(Scalar());
+      swap(a.back(), val);
+    } else if (result_any.type() == typeid(Array<Array<Scalar> >)) {
+      Array<Array<Scalar> >& a = any_ref_cast<Array<Array<Scalar> > >(result_any);
+      Array<Scalar>& v = any_ref_cast<Array<Scalar> >(next_item);
+      a.push_back(Array<Scalar>());
+      swap(a.back(), v);
+    } else {
+      throw Teuchos::ParserFail(
+          "bug in YAMLParameterList::Reader: unexpected type for next sequence item");
+    }
+  }
+};
 
 /* see https://github.com/jbeder/yaml-cpp/issues/261
    there are times when we want to insist that a parameter

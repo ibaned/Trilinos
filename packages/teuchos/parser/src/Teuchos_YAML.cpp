@@ -43,6 +43,7 @@ Language make_language() {
   prods[PROD_BMAP_SCALAR]("bmap_item") >> "scalar", ":", "WS*", "tag?", "scalar", "NEWLINE";
   prods[PROD_BMAP_BSCALAR]("bmap_item") >> "scalar", ":", "WS*", "bscalar";
   prods[PROD_BMAP_BMAP]("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "comment*", "bmap_items", "DEDENT";
+  /* TODO: allow a tag in this */
   prods[PROD_BMAP_BSEQ]("bmap_item") >> "scalar", ":", "WS*", "NEWLINE", "INDENT", "comment*", "bseq_items", "DEDENT";
   prods[PROD_BMAP_FMAP]("bmap_item") >> "scalar", ":", "WS*", "tag?", "fmap", "NEWLINE";
   prods[PROD_BMAP_FSEQ]("bmap_item") >> "scalar", ":", "WS*", "tag?", "fseq", "NEWLINE";
