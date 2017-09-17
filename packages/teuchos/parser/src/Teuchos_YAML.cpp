@@ -132,8 +132,8 @@ Language make_language() {
   prods[PROD_COMMON_EXCL]("common") >> "!";
   prods[PROD_COMMON_OTHER]("common") >> "OTHERCHAR";
   prods[PROD_SPACE_STAR_EMPTY]("WS*");
-  prods[PROD_SPACE_START_NEXT]("WS*") >> "WS*", "WS";
-  prods[PROD_SPACE_PLUS_EMPTY]("WS+") >> "WS";
+  prods[PROD_SPACE_STAR_NEXT]("WS*") >> "WS*", "WS";
+  prods[PROD_SPACE_PLUS_FIRST]("WS+") >> "WS";
   prods[PROD_SPACE_PLUS_NEXT]("WS+") >> "WS+", "WS";
   return out;
 }

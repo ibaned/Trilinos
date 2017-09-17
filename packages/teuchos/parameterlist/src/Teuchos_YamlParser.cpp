@@ -245,7 +245,7 @@ class Reader : public Teuchos::Reader {
         scalar.tagged_type = interpret_tag(rhs.at(0));
         break;
       }
-      case Teuchos::YAML::PROD_FSEQ_FSEQ: {
+      case Teuchos::YAML::PROD_FSEQ_FSEQ:
       case Teuchos::YAML::PROD_FSEQ_FMAP: {
         swap(result_any, rhs.at(1));
         break;
@@ -254,9 +254,191 @@ class Reader : public Teuchos::Reader {
         char first = any_cast<char>(rhs.at(0));
         std::string& str = any_ref_cast<std::string>(rhs.at(1));
         Scalar& scalar = make_any_ref<Scalar>(result_any);
-        swap(scalar.text, str);
-        scalar.text.insert(0, 1, first);
+        scalar.text += first;
+        scalar.text += str;
         scalar.source = Scalar::RAW;
+        break;
+      }
+      case Teuchos::YAML::PROD_SCALAR_DOT:
+      case Teuchos::YAML::PROD_SCALAR_DASH: {
+        char second = any_cast<char>(rhs.at(1));
+        std::string& rest = any_ref_cast<std::string>(rhs.at(2));
+        Scalar& scalar = make_any_ref<Scalar>(result_any);
+        if (prod == Teuchos::YAML::PROD_SCALAR_DOT) scalar.text += '.';
+        if (prod == Teuchos::YAML::PROD_SCALAR_DASH) scalar.text += '-';
+        scalar.text += second;
+        scalar.text += rest;
+        scalar.source = Scalar::RAW;
+        break;
+      }
+      case Teuchos::YAML::PROD_SCALAR_DQUOTED:
+      case Teuchos::YAML::PROD_SCALAR_SQUOTED: {
+        std::string& first = any_ref_cast<std::string>(rhs.at(1));
+        std::string& rest = any_ref_cast<std::string>(rhs.at(2));
+        Scalar& scalar = make_any_ref<Scalar>(result_any);
+        scalar.text += first;
+        scalar.text += rest;
+        if (prod == Teuchos::YAML::PROD_SCALAR_DQUOTED) {
+          scalar.source = Scalar::DQUOTED;
+        } else if (prod == Teuchos::YAML::PROD_SCALAR_SQUOTED) {
+          scalar.source = Scalar::SQUOTED;
+        }
+        break;
+      }
+      case Teuchos::YAML::PROD_TAG: {
+        swap(rest, rhs.at(2));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSCALAR: {
+        std::string& leading_indent = any_ref_cast<std::string>(rhs.at(2));
+        std::string& str = any_ref_cast<std::string>(rhs.at(4));
+        std::string newline;
+        if (leading_indent[0] == '\r') newline = "\r\n";
+        else newline = "\n";
+        // leading_indent may start with multiple newlines
+        leading_indent = newline + leading_indent.substr(leading_indent.find_first_of(" \t");
+        // un-indent the entire block of text
+        std::size_t next_spot;
+        while ((next_spot = str.find(leading_indent)) != std::string::npos) {
+          str = str.substr(0, next_spot) + newline + str.substr(next_spot + leading_indent.size());
+        }
+        Scalar& scalar = make_any_ref<Scalar>(result_any);
+        swap(scalar.text, str);
+        scalar.source = Scalar::BLOCK;
+        break;
+      }
+      case Teuchos::YAML::PROD_BSCALAR_FIRST: {
+        seq_first_item(result_any, rhs.at(0));
+        break;
+      }
+      // all these cases reduce to concatenating two strings
+      case Teuchos::YAML::PROD_BSCALAR_NEXT:
+      case Teuchos::YAML::PROD_BSCALAR_LINE:
+      case Teuchos::YAML::PROD_DESCAPE_NEXT:
+      case Teuchos::YAML::PROD_SESCAPE_NEXT: {
+        swap(result_any, rhs.at(0));
+        std::string& str = any_ref_cast<std::string>(result_any);
+        str += any_ref_cast<std::string>(rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_BSCALAR_INDENT: {
+        swap(result_any, rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_DESCAPE: {
+        std::string& str = make_any_ref<std::string>(result_any);
+        std::string& rest = any_ref_cast<std::string>(rhs.at(2));
+        str += any_cast<char>(rhs.at(1));
+        str += rest;
+        break;
+      }
+      case Teuchos::YAML::PROD_SESCAPE: {
+        std::string& str = make_any_ref<std::string>(result_any);
+        std::string& rest = any_ref_cast<std::string>(rhs.at(2));
+        str += '\'';
+        str += rest;
+        break;
+      }
+      case Teuchos::YAML::PROD_OTHER_FIRST:
+      case Teuchos::YAML::PROD_REST_SPACE:
+      case Teuchos::YAML::PROD_REST_OTHER:
+      case Teuchos::YAML::PROD_DESCAPED_DQUOTED:
+      case Teuchos::YAML::PROD_DQUOTED_COMMON:
+      case Teuchos::YAML::PROD_SQUOTED_COMMON:
+      case Teuchos::YAML::PROD_ANY_COMMON:
+      case Teuchos::YAML::PROD_COMMON_SPACE:
+      case Teuchos::YAML::PROD_COMMON_OTHER:
+      case Teuchos::YAML::PROD_SPACE_PLUS_FIRST: {
+        swap(result_any, rhs.at(0));
+        break;
+      }
+      // all these cases reduce to appending a character
+      case Teuchos::YAML::PROD_BSCALAR_DQUOTED_NEXT:
+      case Teuchos::YAML::PROD_BSCALAR_SQUOTED_NEXT:
+      case Teuchos::YAML::PROD_BSCALAR_ANY_NEXT:
+      case Teuchos::YAML::PROD_BSCALAR_REST_NEXT:
+      case Teuchos::YAML::PROD_BSCALAR_OTHER_NEXT:
+      case Teuchos::YAML::PROD_SPACE_STAR_NEXT:
+      case Teuchos::YAML::PROD_SPACE_PLUS_NEXT: {
+        swap(result_any, rhs.at(0));
+        std::string& str = any_ref_cast<std::string>(result_any);
+        str += any_cast<char>(rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_DQUOTED_EMPTY:
+      case Teuchos::YAML::PROD_SQUOTED_EMPTY:
+      case Teuchos::YAML::PROD_DESCAPE_EMPTY:
+      case Teuchos::YAML::PROD_SESCAPE_EMPTY:
+      case Teuchos::YAML::PROD_REST_EMPTY:
+      case Teuchos::YAML::PROD_SPACE_STAR_EMPTY: {
+        result_any = std::string();
+        break;
+      }
+      case Teuchos::YAML::PROD_DESCAPED_DQUOT:
+      case Teuchos::YAML::PROD_SQUOTED_DQUOT:
+      case Teuchos::YAML::PROD_ANY_DQUOT: {
+        result_any = '"';
+        break;
+      }
+      case Teuchos::YAML::PROD_DESCAPED_SLASH:
+      case Teuchos::YAML::PROD_SQUOTED_SLASH:
+      case Teuchos::YAML::PROD_ANY_SLASH: {
+        result_any = '\\';
+        break;
+      }
+      case Teuchos::YAML::PROD_DQUOTED_SQUOT:
+      case Teuchos::YAML::PROD_ANY_SQUOT: {
+        result_any = '\'';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_COLON: {
+        result_any = ':';
+        break;
+      }
+      case Teuchos::YAML::PROD_REST_DOT:
+      case Teuchos::YAML::PROD_COMMON_DOT: {
+        result_any = '.';
+        break;
+      }
+      case Teuchos::YAML::PROD_REST_DASH:
+      case Teuchos::YAML::PROD_COMMON_DASH: {
+        result_any = '-';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_PIPE: {
+        result_any = '|';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_LSQUARE: {
+        result_any = '[';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_RSQUARE: {
+        result_any = ']';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_LCURLY: {
+        result_any = '{';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_RCURLY: {
+        result_any = '}';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_COMMA: {
+        result_any = ',';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_PERCENT: {
+        result_any = '%';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_POUND: {
+        result_any = '#';
+        break;
+      }
+      case Teuchos::YAML::PROD_COMMON_EXCL: {
+        result_any = '!';
         break;
       }
     }
