@@ -236,6 +236,8 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_BMAP_FSEQ: {
+        TEUCHOS_ASSERT(rhs.at(4).type() == typeid(Array<Scalar>) ||
+            rhs.at(4).type() == typeid(Array<Array<Scalar> >));
         int scalar_type = interpret_tag(rhs.at(3));
         map_item(result_any, rhs.at(0), rhs.at(4), scalar_type);
         break;
@@ -281,6 +283,12 @@ class Reader : public Teuchos::Reader {
       }
       case Teuchos::YAML::PROD_FMAP_EMPTY: {
         result_any = ParameterList();
+        break;
+      }
+      case Teuchos::YAML::PROD_FSEQ: {
+        swap(result_any, rhs.at(2));
+        TEUCHOS_ASSERT(result_any.type() == typeid(Array<Scalar>) ||
+            result_any.type() == typeid(Array<Array<Scalar> >));
         break;
       }
       case Teuchos::YAML::PROD_FSEQ_EMPTY: {
@@ -364,7 +372,7 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_BSCALAR_FIRST: {
-        seq_first_item(result_any, rhs.at(0));
+        swap(result_any, rhs.at(0));
         break;
       }
       // all these cases reduce to concatenating two strings
@@ -579,12 +587,15 @@ class Reader : public Teuchos::Reader {
       }
     } else if (value_any.type() == typeid(Array<Scalar>)) {
       Array<Scalar>& scalars = any_ref_cast<Array<Scalar> >(value_any);
-      if (scalars.size() == 0) {
-        throw ParserFail("implicitly typed arrays can't be empty\n"
-                         "(need to determine their element type)\n");
-      }
-      for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
-        scalar_type = std::min(scalar_type, scalars[i].infer_type());
+      if (scalar_type == -1) {
+        if (scalars.size() == 0) {
+          throw ParserFail("implicitly typed arrays can't be empty\n"
+                           "(need to determine their element type)\n");
+        }
+        scalar_type = Scalar::INT;
+        for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
+          scalar_type = std::min(scalar_type, scalars[i].infer_type());
+        }
       }
       if (scalar_type == Scalar::INT) {
         Array<int> result(scalars.size());
@@ -612,6 +623,7 @@ class Reader : public Teuchos::Reader {
           throw ParserFail("implicitly typed 2D arrays can't be empty\n"
                            "(need to determine their element type)\n");
         }
+        scalar_type = Scalar::INT;
         for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
           if (scalars[0].size() == 0) {
             throw ParserFail("implicitly typed 2D arrays can't have empty rows\n"
