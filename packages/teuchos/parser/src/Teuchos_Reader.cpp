@@ -85,7 +85,16 @@ void Reader::at_token(std::istream& stream) {
       }
       resize(value_stack, size(value_stack) - size(prod.rhs));
       Teuchos::any reduce_result;
-      this->at_reduce(reduce_result, parser_action.production, reduction_rhs);
+      try {
+        this->at_reduce(reduce_result, parser_action.production, reduction_rhs);
+      } catch (const ParserFail& e) {
+        std::stringstream ss;
+        ss << "error: Parser failure at line " << line;
+        ss << " column " << column << " of " << stream_name << '\n';
+        error_print_line(stream, ss);
+        ss << '\n' << e.what();
+        throw ParserFail(ss.str());
+      }
       add_back(value_stack, reduce_result);
     } else {
       TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,

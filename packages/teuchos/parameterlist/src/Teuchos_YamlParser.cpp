@@ -366,6 +366,8 @@ class Reader : public Teuchos::Reader {
       case Teuchos::YAML::PROD_OTHER_NEXT:
       case Teuchos::YAML::PROD_SPACE_STAR_NEXT:
       case Teuchos::YAML::PROD_SPACE_PLUS_NEXT: {
+        TEUCHOS_TEST_FOR_EXCEPTION(rhs.at(0).empty(), ParserFail,
+            "leading characters in " << prod << ": any was empty\n");
         swap(result_any, rhs.at(0));
         std::string& str = any_ref_cast<std::string>(result_any);
         str += any_cast<char>(rhs.at(1));
@@ -373,6 +375,7 @@ class Reader : public Teuchos::Reader {
       }
       case Teuchos::YAML::PROD_DQUOTED_EMPTY:
       case Teuchos::YAML::PROD_SQUOTED_EMPTY:
+      case Teuchos::YAML::PROD_ANY_EMPTY:
       case Teuchos::YAML::PROD_DESCAPE_EMPTY:
       case Teuchos::YAML::PROD_SESCAPE_EMPTY:
       case Teuchos::YAML::PROD_REST_EMPTY:
