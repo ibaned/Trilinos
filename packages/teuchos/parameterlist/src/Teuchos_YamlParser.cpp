@@ -58,6 +58,9 @@
 #include "Teuchos_Reader.hpp"
 #include "Teuchos_YAML.hpp"
 
+//DEBUG
+#include "Teuchos_vector.hpp"
+
 namespace Teuchos {
 
 template <typename T>
@@ -120,6 +123,18 @@ class Reader : public Teuchos::Reader {
   virtual ~Reader() {}
  protected:
   virtual void at_shift(any& result_any, int token, std::string& text) {
+  //std::string& text_escaped = make_any_ref<std::string>(result);
+    std::string text_escaped;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+      char c = text[i];
+      switch (c) {
+        case '\n': text_escaped.append("\\n"); break;
+        case '\t': text_escaped.append("\\t"); break;
+        case '\r': text_escaped.append("\\r"); break;
+        default: text_escaped.push_back(c);
+      }
+    }
+    std::cerr << "SHIFT (" << at(grammar->symbol_names, token) << ")[" << text_escaped << "]\n";
     using std::swap;
     switch (token) {
       case Teuchos::YAML::TOK_NEWLINE: {
@@ -135,11 +150,33 @@ class Reader : public Teuchos::Reader {
     }
   }
   virtual void at_reduce(any& result_any, int prod, std::vector<any>& rhs) {
+    {
+    std::cerr << "REDUCE";
+  //std::string& lhs_text = make_any_ref<std::string>(result);
+    const Teuchos::Grammar::Production& prod2 = at(grammar->productions, prod);
+    for (int i = 0; i < size(prod2.rhs); ++i) {
+      const std::string& rhs_name = at(grammar->symbol_names, at(prod2.rhs, i));
+    //const std::string& rhs_text = any_ref_cast<std::string>(at(rhs, i));
+      std::string rhs_text;
+      std::cerr << " (" << rhs_name << ")[" << rhs_text << "]";
+    //lhs_text.append(rhs_text);
+    }
+    const std::string& lhs_name = at(grammar->symbol_names, prod2.lhs);
+    std::cerr << " -> (" << lhs_name << ")[" /* << lhs_text */ << "]\n";
+    }
     using std::swap;
     switch (prod) {
-      case Teuchos::YAML::PROD_DOC:
-      case Teuchos::YAML::PROD_TOP_BMAP: {
+      case Teuchos::YAML::PROD_DOC: {
+        TEUCHOS_ASSERT(!rhs.at(0).empty());
         swap(result_any, rhs.at(0));
+        TEUCHOS_ASSERT(result_any.type() == typeid(ParameterList));
+        break;
+      }
+      case Teuchos::YAML::PROD_TOP_BMAP: {
+        TEUCHOS_ASSERT(!rhs.at(0).empty());
+        swap(result_any, rhs.at(0));
+        TEUCHOS_ASSERT(result_any.type() == typeid(PLPair));
+        std::cerr << "TOP_BMAP returned a PLPair\n";
         break;
       }
       case Teuchos::YAML::PROD_TOP_FIRST: {
@@ -148,16 +185,26 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_TOP_NEXT: {
-        if (rhs.at(1).type() != typeid(PLPair)) break;
-        if (rhs.at(0).type() == typeid(ParameterList)) {
-          map_next_item(result_any, rhs.at(0), rhs.at(1));
+        if (rhs.at(1).type() == typeid(PLPair)) {
+          if (rhs.at(0).type() == typeid(ParameterList)) {
+            std::cerr << "TOP_NEXT: calling map_next_item\n";
+            map_next_item(result_any, rhs.at(0), rhs.at(1));
+          } else {
+            std::cerr << "TOP_NEXT: calling map_first_item because rhs.at(0).type() is \""
+              << rhs.at(0).type().name() << "\"\n";
+            map_first_item(result_any, rhs.at(1));
+          }
         } else {
-          map_first_item(result_any, rhs.at(0));
+          std::cerr << "TOP_NEXT: swapping because next top_item is of type \""
+            << rhs.at(1).type().name() << "\"\n";
+          swap(result_any, rhs.at(0));
         }
         break;
       }
       case Teuchos::YAML::PROD_BMAP_FIRST: {
+        TEUCHOS_ASSERT(rhs.at(0).type() == typeid(PLPair));
         map_first_item(result_any, rhs.at(0));
+        TEUCHOS_ASSERT(result_any.type() == typeid(ParameterList));
         break;
       }
       case Teuchos::YAML::PROD_BMAP_NEXT: {
@@ -174,7 +221,10 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_BMAP_BMAP: {
+        TEUCHOS_ASSERT(rhs.at(6).type() == typeid(ParameterList));
         map_item(result_any, rhs.at(0), rhs.at(6));
+        TEUCHOS_ASSERT(result_any.type() == typeid(PLPair));
+        std::cerr << "BMAP_BMAP returned a PLPair\n";
         break;
       }
       case Teuchos::YAML::PROD_BMAP_BSEQ: {
@@ -454,6 +504,7 @@ class Reader : public Teuchos::Reader {
   }
   void map_first_item(any& result_any, any& first_item) {
     ParameterList& list = make_any_ref<ParameterList>(result_any);
+    TEUCHOS_ASSERT(!first_item.empty());
     PLPair& pair = any_ref_cast<PLPair>(first_item);
     list.set(pair.key, pair.value);
   }
@@ -500,6 +551,7 @@ class Reader : public Teuchos::Reader {
       TwoDArray<std::string>& value = any_ref_cast<TwoDArray<std::string> >(value_any);
       result.value = ParameterEntry(value);
     } else if (value_any.type() == typeid(ParameterList)) {
+      std::cerr << "doing the value=ParameterList case of map_item\n";
       ParameterList& value = any_ref_cast<ParameterList>(value_any);
       ParameterList& result_pl = result.value.setList();
       swap(result_pl, value);

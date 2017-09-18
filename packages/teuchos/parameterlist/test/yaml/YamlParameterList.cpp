@@ -78,11 +78,11 @@ namespace TeuchosTests
     for(size_t i = 0; i < matchStems.size(); i++)
     {
       string yamlFile = matchStems[i] + ".yaml";
-      Teuchos::ReaderTablesPtr tables = Teuchos::YAML::ask_reader_tables();
-      Teuchos::DebugReader reader(tables, std::cout);
-      Teuchos::any result;
-      reader.read_file(result, yamlFile);
-      std::cerr << "done debug reading \"" << yamlFile << "\"\n";
+    //Teuchos::ReaderTablesPtr tables = Teuchos::YAML::ask_reader_tables();
+    //Teuchos::DebugReader reader(tables, std::cout);
+    //Teuchos::any result;
+    //reader.read_file(result, yamlFile);
+    //std::cerr << "done debug reading \"" << yamlFile << "\"\n";
       RCP<ParameterList> yamlList = Teuchos::getParametersFromYamlFile(yamlFile);
       std::cerr << "done reading \"" << yamlFile << "\"\n";
       string xmlFile =  matchStems[i] + ".xml";
