@@ -119,13 +119,14 @@ void Reader::at_token_indent(std::istream& stream) {
     at_token(stream);
     return;
   }
-  at_token(stream);
   std::size_t end_of_actual_newlines = 0;
   for (; end_of_actual_newlines < lexer_text.size(); ++end_of_actual_newlines) {
     char c = lexer_text[end_of_actual_newlines];
     if (c != '\n' && c != '\r') break;
   }
   std::string lexer_indent = lexer_text.substr(end_of_actual_newlines, std::string::npos);
+  // the at_token call is allowed to do anything to lexer_text
+  at_token(stream);
   lexer_text.clear();
   std::size_t minlen = std::min(lexer_indent.length(), indent_text.length());
   if (lexer_indent.length() > indent_text.length()) {
