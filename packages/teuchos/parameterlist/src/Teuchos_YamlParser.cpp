@@ -87,17 +87,6 @@ std::string remove_trailing_whitespace_and_newlines(std::string const& in) {
   return in.substr(0, new_end);
 }
 
-void print_escaped_string(std::string const& s) {
-  std::cerr << "\"";
-  for (std::size_t j = 0; j < s.size(); ++j) {
-    if (s[j] == '\n') std::cerr << "\\n";
-    else if (s[j] == '\r') std::cerr << "\\r";
-    else if (s[j] == '\t') std::cerr << "\\t";
-    else std::cerr << s[j];
-  }
-  std::cerr << "\"\n";
-}
-
 template <typename T>
 bool is_parseable_as(std::string const& text) {
   std::istringstream ss(text);
@@ -155,26 +144,20 @@ struct Scalar {
   std::string text;
   int infer_type() const {
     if (tag_type != -1) {
-      std::cerr << "returning tag type\n";
       return tag_type;
     }
     if (source != RAW) {
-      std::cerr << "source not raw, return string\n";
       return STRING;
     }
     if (is_parseable_as_bool(text)) {
-      std::cerr << "parseable as bool, return bool\n";
       return BOOL;
     }
     if (is_parseable_as<int>(text)) {
-      std::cerr << "parseable as int, return int\n";
       return INT;
     }
     if (is_parseable_as<double>(text)) {
-      std::cerr << "parseable as double, return double\n";
       return DOUBLE;
     }
-    std::cerr << "default, return string\n";
     return STRING;
   }
 };
@@ -436,22 +419,12 @@ class Reader : public Teuchos::Reader {
         std::string& str = any_ref_cast<std::string>(rhs.at(4));
         std::string leading_indent = leading_newline_token;
         std::string newline;
-        std::cerr << "leading_newline_token: ";
-        print_escaped_string(leading_newline_token);
         if (leading_indent[0] == '\r') newline = "\r\n";
         else newline = "\n";
-        std::cerr << "newline: ";
-        print_escaped_string(newline);
         // leading_indent may start with multiple newlines
         leading_indent = newline + leading_indent.substr(leading_indent.find_first_of(" \t"));
-        std::cerr << "leading_indent: ";
-        print_escaped_string(leading_indent);
-        std::cerr << "original str: ";
-        print_escaped_string(str);
         // add any extra newlines at the start of the block scalar:
         str = leading_newline_token.substr(0, leading_newline_token.size() - leading_indent.size()) + str;
-        std::cerr << "add leading newlines: ";
-        print_escaped_string(str);
         // unindent the entire block of text
         std::size_t next_start = 0;
         std::size_t next_found;
@@ -459,19 +432,11 @@ class Reader : public Teuchos::Reader {
           str = str.substr(0, next_found) + newline + str.substr(next_found + leading_indent.size());
           next_start = next_found + newline.size();
         }
-        std::cerr << "unindent: ";
-        print_escaped_string(str);
         // remove all trailing whitespace and newlines
         str = remove_trailing_whitespace_and_newlines(str);
-        std::cerr << "remove trailing space and newlines: ";
-        print_escaped_string(str);
         // normal trimming leaves the last newline, dash trimming removes it
         // in our case, its already gone, so put it back
-        if (trim == TRIM_NORMAL) {
-          str += newline;
-          std::cerr << "put back trailing newline\n";
-          print_escaped_string(str);
-        }
+        if (trim == TRIM_NORMAL) str += newline;
         Scalar& scalar = make_any_ref<Scalar>(result_any);
         swap(scalar.text, str);
         scalar.source = Scalar::BLOCK;
@@ -639,13 +604,6 @@ class Reader : public Teuchos::Reader {
     ParameterList& list = any_ref_cast<ParameterList>(result_any);
     PLPair& pair = any_ref_cast<PLPair>(next_item);
     list.setEntry(pair.key, pair.value);
-    std::cerr << "map_next_item set \"" << pair.key << "\"\n";
-    if (pair.value.getAny(false).type() == typeid(ParameterList)) {
-      std::cerr << "it is a list in the PLPair!\n";
-    }
-    if (list.isSublist("pair.key")) {
-      std::cerr << "it is a list in the ParameterList!\n";
-    }
   }
   void map_item(any& result_any, any& key_any, any& value_any, int scalar_type = -1) {
     using std::swap;
@@ -654,7 +612,6 @@ class Reader : public Teuchos::Reader {
       std::string& key = any_ref_cast<Scalar>(key_any).text;
       swap(result.key, key);
     }
-    std::cerr << "resolving value type for key \"" << result.key << "\"\n";
     resolve_map_value(value_any, scalar_type);
     if (value_any.type() == typeid(bool)) {
       bool value = any_cast<bool>(value_any);
@@ -687,7 +644,6 @@ class Reader : public Teuchos::Reader {
       TwoDArray<std::string>& value = any_ref_cast<TwoDArray<std::string> >(value_any);
       result.value = ParameterEntry(value);
     } else if (value_any.type() == typeid(ParameterList)) {
-      std::cerr << "doing the value=ParameterList case of map_item\n";
       ParameterList& value = any_ref_cast<ParameterList>(value_any);
       ParameterList& result_pl = result.value.setList();
       swap(result_pl, value);
@@ -702,23 +658,17 @@ class Reader : public Teuchos::Reader {
   }
   void resolve_map_value(any& value_any, int scalar_type = -1) const {
     if (value_any.type() == typeid(Scalar)) {
-      std::cerr << "value type was originally Scalar\n";
       Scalar& scalar_value = any_ref_cast<Scalar>(value_any);
       if (scalar_type == -1) {
-        std::cerr << "inferring single scalar type...\n";
         scalar_type = scalar_value.infer_type();
       }
       if (scalar_type == Scalar::BOOL) {
-        std::cerr << "saving as bool\n";
         value_any = parse_as_bool(scalar_value.text);
       } else if (scalar_type == Scalar::INT) {
-        std::cerr << "saving as int\n";
         value_any = parse_as<int>(scalar_value.text);
       } else if (scalar_type == Scalar::DOUBLE) {
-        std::cerr << "saving as double\n";
         value_any = parse_as<double>(scalar_value.text);
       } else {
-        std::cerr << "saving as string\n";
         value_any = scalar_value.text;
       }
     } else if (value_any.type() == typeid(Array<Scalar>)) {
