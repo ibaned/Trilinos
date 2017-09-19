@@ -718,6 +718,21 @@ bool Teuchos::haveSameValues( const ParameterList& list1, const ParameterList& l
         const any& entry1_any = entry1.getAny(false);
         const any& entry2_any = entry2.getAny(false);
         std::cerr << "entry1_any.type() \"" << entry1_any.type().name() << "\" != entry2_any.type() \"" << entry2_any.type().name() << "\"\n";
+        if (entry1_any.type() == typeid(std::string) && entry2_any.type() == typeid(std::string)) {
+          std::string str[2];
+          str[0] = any_cast<std::string>(entry1_any);
+          str[1] = any_cast<std::string>(entry2_any);
+          for (int i = 0; i < 2; ++i) {
+            std::cerr << "str[" << i << "] = \"";
+            for (std::size_t j = 0; j < str[i].size(); ++j) {
+              if (str[i][j] == '\n') std::cerr << "\\n";
+              else if (str[i][j] == '\r') std::cerr << "\\r";
+              else if (str[i][j] == '\t') std::cerr << "\\t";
+              else std::cerr << str[i][j];
+            }
+            std::cerr << "\"\n";
+          }
+        }
         return false;
       }
     }

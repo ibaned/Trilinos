@@ -75,6 +75,29 @@ std::string remove_trailing_whitespace(std::string const& in) {
   return in.substr(0, new_end);
 }
 
+std::string remove_trailing_whitespace_and_newlines(std::string const& in) {
+  std::size_t new_end = 0;
+  for (std::size_t ri = 0; ri < in.size(); ++ri) {
+    std::size_t i = in.size() - 1 - ri;
+    if (in[i] != ' ' && in[i] != '\t' && in[i] != '\n' && in[i] != '\r') {
+      new_end = i + 1;
+      break;
+    }
+  }
+  return in.substr(0, new_end);
+}
+
+void print_escaped_string(std::string const& s) {
+  std::cerr << "\"";
+  for (std::size_t j = 0; j < s.size(); ++j) {
+    if (s[j] == '\n') std::cerr << "\\n";
+    else if (s[j] == '\r') std::cerr << "\\r";
+    else if (s[j] == '\t') std::cerr << "\\t";
+    else std::cerr << s[j];
+  }
+  std::cerr << "\"\n";
+}
+
 template <typename T>
 bool is_parseable_as(std::string const& text) {
   std::istringstream ss(text);
@@ -169,6 +192,10 @@ class Reader : public Teuchos::Reader {
   Reader():Teuchos::Reader(Teuchos::YAML::ask_reader_tables()) {}
   virtual ~Reader() {}
  protected:
+  enum {
+    TRIM_NORMAL,
+    TRIM_DASH
+  };
   virtual void at_shift(any& result_any, int token, std::string& text) {
   //std::string text_escaped;
   //for (std::size_t i = 0; i < text.size(); ++i) {
@@ -404,17 +431,46 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_BSCALAR: {
-        std::string& leading_indent = any_ref_cast<std::string>(rhs.at(2));
+        int trim = any_cast<int>(rhs.at(0)); 
+        std::string& leading_newline_token = any_ref_cast<std::string>(rhs.at(2));
         std::string& str = any_ref_cast<std::string>(rhs.at(4));
+        std::string leading_indent = leading_newline_token;
         std::string newline;
+        std::cerr << "leading_newline_token: ";
+        print_escaped_string(leading_newline_token);
         if (leading_indent[0] == '\r') newline = "\r\n";
         else newline = "\n";
+        std::cerr << "newline: ";
+        print_escaped_string(newline);
         // leading_indent may start with multiple newlines
         leading_indent = newline + leading_indent.substr(leading_indent.find_first_of(" \t"));
-        // un-indent the entire block of text
-        std::size_t next_spot;
-        while ((next_spot = str.find(leading_indent)) != std::string::npos) {
-          str = str.substr(0, next_spot) + newline + str.substr(next_spot + leading_indent.size());
+        std::cerr << "leading_indent: ";
+        print_escaped_string(leading_indent);
+        std::cerr << "original str: ";
+        print_escaped_string(str);
+        // add any extra newlines at the start of the block scalar:
+        str = leading_newline_token.substr(0, leading_newline_token.size() - leading_indent.size()) + str;
+        std::cerr << "add leading newlines: ";
+        print_escaped_string(str);
+        // unindent the entire block of text
+        std::size_t next_start = 0;
+        std::size_t next_found;
+        while ((next_found = str.find(leading_indent, next_start)) != std::string::npos) {
+          str = str.substr(0, next_found) + newline + str.substr(next_found + leading_indent.size());
+          next_start = next_found + newline.size();
+        }
+        std::cerr << "unindent: ";
+        print_escaped_string(str);
+        // remove all trailing whitespace and newlines
+        str = remove_trailing_whitespace_and_newlines(str);
+        std::cerr << "remove trailing space and newlines: ";
+        print_escaped_string(str);
+        // normal trimming leaves the last newline, dash trimming removes it
+        // in our case, its already gone, so put it back
+        if (trim == TRIM_NORMAL) {
+          str += newline;
+          std::cerr << "put back trailing newline\n";
+          print_escaped_string(str);
         }
         Scalar& scalar = make_any_ref<Scalar>(result_any);
         swap(scalar.text, str);
@@ -438,6 +494,16 @@ class Reader : public Teuchos::Reader {
       }
       case Teuchos::YAML::PROD_BSCALAR_INDENT: {
         swap(result_any, rhs.at(1));
+        break;
+      }
+      case Teuchos::YAML::PROD_PIPE_NORMAL: {
+        int trim = TRIM_NORMAL;
+        result_any = trim;
+        break;
+      }
+      case Teuchos::YAML::PROD_PIPE_DASH: {
+        int trim = TRIM_DASH;
+        result_any = trim;
         break;
       }
       case Teuchos::YAML::PROD_DESCAPE: {
