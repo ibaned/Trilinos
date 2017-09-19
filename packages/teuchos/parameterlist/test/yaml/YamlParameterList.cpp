@@ -88,6 +88,8 @@ namespace TeuchosTests
       string xmlFile =  matchStems[i] + ".xml";
       RCP<ParameterList> xmlList = Teuchos::getParametersFromXmlFile(xmlFile);
       TEST_EQUALITY(Teuchos::haveSameValues(*xmlList, *yamlList), true);
+      std::cerr << "XML List:\n" << *xmlList << '\n';
+      std::cerr << "YAML List:\n" << *yamlList << '\n';
     }
   }
   TEUCHOS_UNIT_TEST(YAML, IntVsDouble)

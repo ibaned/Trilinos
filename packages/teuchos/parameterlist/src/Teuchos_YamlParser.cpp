@@ -63,6 +63,18 @@
 
 namespace Teuchos {
 
+std::string remove_trailing_whitespace(std::string const& in) {
+  std::size_t new_end = 0;
+  for (std::size_t ri = 0; ri < in.size(); ++ri) {
+    std::size_t i = in.size() - 1 - ri;
+    if (in[i] != ' ' && in[i] != '\t') {
+      new_end = i + 1;
+      break;
+    }
+  }
+  return in.substr(0, new_end);
+}
+
 template <typename T>
 bool is_parseable_as(std::string const& text) {
   std::istringstream ss(text);
@@ -123,18 +135,17 @@ class Reader : public Teuchos::Reader {
   virtual ~Reader() {}
  protected:
   virtual void at_shift(any& result_any, int token, std::string& text) {
-  //std::string& text_escaped = make_any_ref<std::string>(result);
-    std::string text_escaped;
-    for (std::size_t i = 0; i < text.size(); ++i) {
-      char c = text[i];
-      switch (c) {
-        case '\n': text_escaped.append("\\n"); break;
-        case '\t': text_escaped.append("\\t"); break;
-        case '\r': text_escaped.append("\\r"); break;
-        default: text_escaped.push_back(c);
-      }
-    }
-    std::cerr << "SHIFT (" << at(grammar->symbol_names, token) << ")[" << text_escaped << "]\n";
+  //std::string text_escaped;
+  //for (std::size_t i = 0; i < text.size(); ++i) {
+  //  char c = text[i];
+  //  switch (c) {
+  //    case '\n': text_escaped.append("\\n"); break;
+  //    case '\t': text_escaped.append("\\t"); break;
+  //    case '\r': text_escaped.append("\\r"); break;
+  //    default: text_escaped.push_back(c);
+  //  }
+  //}
+  //std::cerr << "SHIFT (" << at(grammar->symbol_names, token) << ")[" << text_escaped << "]\n";
     using std::swap;
     switch (token) {
       case Teuchos::YAML::TOK_NEWLINE: {
@@ -150,20 +161,17 @@ class Reader : public Teuchos::Reader {
     }
   }
   virtual void at_reduce(any& result_any, int prod, std::vector<any>& rhs) {
-    {
-    std::cerr << "REDUCE";
-  //std::string& lhs_text = make_any_ref<std::string>(result);
-    const Teuchos::Grammar::Production& prod2 = at(grammar->productions, prod);
-    for (int i = 0; i < size(prod2.rhs); ++i) {
-      const std::string& rhs_name = at(grammar->symbol_names, at(prod2.rhs, i));
-    //const std::string& rhs_text = any_ref_cast<std::string>(at(rhs, i));
-      std::string rhs_text;
-      std::cerr << " (" << rhs_name << ")[" << rhs_text << "]";
-    //lhs_text.append(rhs_text);
-    }
-    const std::string& lhs_name = at(grammar->symbol_names, prod2.lhs);
-    std::cerr << " -> (" << lhs_name << ")[" /* << lhs_text */ << "]\n";
-    }
+  //{
+  //  std::cerr << "REDUCE";
+  //  const Teuchos::Grammar::Production& prod2 = at(grammar->productions, prod);
+  //  for (int i = 0; i < size(prod2.rhs); ++i) {
+  //    const std::string& rhs_name = at(grammar->symbol_names, at(prod2.rhs, i));
+  //    std::string rhs_text;
+  //    std::cerr << " (" << rhs_name << ")[" << rhs_text << "]";
+  //  }
+  //  const std::string& lhs_name = at(grammar->symbol_names, prod2.lhs);
+  //  std::cerr << " -> (" << lhs_name << ")[" /* << lhs_text */ << "]\n";
+  //}
     using std::swap;
     switch (prod) {
       case Teuchos::YAML::PROD_DOC: {
@@ -174,29 +182,27 @@ class Reader : public Teuchos::Reader {
       }
       case Teuchos::YAML::PROD_TOP_BMAP: {
         TEUCHOS_ASSERT(!rhs.at(0).empty());
-        swap(result_any, rhs.at(0));
-        TEUCHOS_ASSERT(result_any.type() == typeid(PLPair));
-        std::cerr << "TOP_BMAP returned a PLPair\n";
+        TEUCHOS_ASSERT(rhs.at(0).type() == typeid(PLPair));
+        PLPair& pair = any_ref_cast<PLPair>(rhs.at(0));
+        any& pair_rhs_any = pair.value.getAny(/* set isUsed = */ false);
+        ParameterList& pair_rhs_pl = any_ref_cast<ParameterList>(pair_rhs_any);
+        pair_rhs_pl.setName(pair.key);
+        result_any = pair_rhs_any;
+        std::cerr << "TOP_BMAP returned a ParameterList\n";
         break;
       }
       case Teuchos::YAML::PROD_TOP_FIRST: {
-        if (rhs.at(0).type() != typeid(PLPair)) break;
+        if (rhs.at(0).type() != typeid(ParameterList)) break;
         map_first_item(result_any, rhs.at(0));
         break;
       }
       case Teuchos::YAML::PROD_TOP_NEXT: {
-        if (rhs.at(1).type() == typeid(PLPair)) {
-          if (rhs.at(0).type() == typeid(ParameterList)) {
-            std::cerr << "TOP_NEXT: calling map_next_item\n";
-            map_next_item(result_any, rhs.at(0), rhs.at(1));
-          } else {
-            std::cerr << "TOP_NEXT: calling map_first_item because rhs.at(0).type() is \""
-              << rhs.at(0).type().name() << "\"\n";
-            map_first_item(result_any, rhs.at(1));
-          }
+        if (rhs.at(1).type() == typeid(ParameterList)) {
+          TEUCHOS_TEST_FOR_EXCEPTION(!rhs.at(0).empty(), ParserFail,
+              "PROD_TOP_NEXT: top_items type is " << rhs.at(0).type().name()
+              << ", top_item type is " << rhs.at(1).type().name() << '\n');
+          swap(result_any, rhs.at(1));
         } else {
-          std::cerr << "TOP_NEXT: swapping because next top_item is of type \""
-            << rhs.at(1).type().name() << "\"\n";
           swap(result_any, rhs.at(0));
         }
         break;
@@ -320,6 +326,7 @@ class Reader : public Teuchos::Reader {
         Scalar& scalar = make_any_ref<Scalar>(result_any);
         scalar.text += first;
         scalar.text += str;
+        scalar.text = remove_trailing_whitespace(scalar.text);
         scalar.source = Scalar::RAW;
         break;
       }
@@ -332,6 +339,7 @@ class Reader : public Teuchos::Reader {
         if (prod == Teuchos::YAML::PROD_SCALAR_DASH) scalar.text += '-';
         scalar.text += second;
         scalar.text += rest;
+        scalar.text = remove_trailing_whitespace(scalar.text);
         scalar.source = Scalar::RAW;
         break;
       }
