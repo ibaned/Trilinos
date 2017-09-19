@@ -694,6 +694,7 @@ bool Teuchos::haveSameValues( const ParameterList& list1, const ParameterList& l
     const ParameterEntry &entry1       = list1.entry(itr1);
     const ParameterEntry &entry2       = list2.entry(itr2);
     if( entryName1 != entryName2 ) {
+      std::cerr << "entryName1 \"" << entryName1 << "\" != entryName2 \"" << entryName2 << "\"\n";
       return false;
     }
     if( entry1.isList() && entry2.isList() ) {
@@ -707,17 +708,24 @@ bool Teuchos::haveSameValues( const ParameterList& list1, const ParameterList& l
         // only need a const ParameterList.  We have to do this since a
         // non-const ParameterList is always added initially which determines
         // the value.
+        std::cerr << "entry1 list \"" << entryName1 << "\" != entry2 list \"" << entryName2 << "\"\n";
         return false;
       }
     }
     else {
       if( entry1.getAny() != entry2.getAny() ) {
+        std::cerr << "entry1.getAny() \"" << entryName1 << "\" != entry2.getAny() \"" << entryName2 << "\"\n";
+        const any& entry1_any = entry1.getAny(false);
+        const any& entry2_any = entry2.getAny(false);
+        std::cerr << "entry1_any.type() \"" << entry1_any.type().name() << "\" != entry2_any.type() \"" << entry2_any.type().name() << "\"\n";
         return false;
       }
     }
   }
   // Check that the two parameter lists are the same length:
   if ((itr1 != list1.end()) || (itr2 != list2.end())) {
+    if (itr1 != list1.end()) std::cerr << "list1 didn't end!\n";
+    if (itr2 != list2.end()) std::cerr << "list2 didn't end!\n";
     return false;
   }
   return true;

@@ -110,13 +110,26 @@ struct Scalar {
     INT    = 2
   };
   int source;
-  int tagged_type;
+  int tag_type;
   std::string text;
   int infer_type() const {
-    if (tagged_type != -1) return tagged_type;
-    if (source != RAW) return STRING;
-    if (is_parseable_as<int>(text)) return INT;
-    if (is_parseable_as<double>(text)) return DOUBLE;
+    if (tag_type != -1) {
+      std::cerr << "returning tag type\n";
+      return tag_type;
+    }
+    if (source != RAW) {
+      std::cerr << "source not raw, return string\n";
+      return STRING;
+    }
+    if (is_parseable_as<int>(text)) {
+      std::cerr << "parseable as int, return int\n";
+      return INT;
+    }
+    if (is_parseable_as<double>(text)) {
+      std::cerr << "parseable as double, return double\n";
+      return DOUBLE;
+    }
+    std::cerr << "default, return string\n";
     return STRING;
   }
 };
@@ -230,6 +243,10 @@ class Reader : public Teuchos::Reader {
         TEUCHOS_ASSERT(rhs.at(6).type() == typeid(ParameterList));
         map_item(result_any, rhs.at(0), rhs.at(6));
         TEUCHOS_ASSERT(result_any.type() == typeid(PLPair));
+        PLPair& pair = any_ref_cast<PLPair>(result_any);
+        any& pair_rhs_any = pair.value.getAny(false);
+        TEUCHOS_ASSERT(pair_rhs_any.type() == typeid(ParameterList));
+        TEUCHOS_ASSERT(pair.value.isList());
         std::cerr << "BMAP_BMAP returned a PLPair\n";
         break;
       }
@@ -259,7 +276,7 @@ class Reader : public Teuchos::Reader {
       case Teuchos::YAML::PROD_BSEQ_SCALAR: {
         swap(result_any, rhs.at(3));
         Scalar& scalar = any_ref_cast<Scalar>(result_any);
-        scalar.tagged_type = interpret_tag(rhs.at(2));
+        scalar.tag_type = interpret_tag(rhs.at(2));
         break;
       }
       case Teuchos::YAML::PROD_BSEQ_BSCALAR: {
@@ -312,7 +329,7 @@ class Reader : public Teuchos::Reader {
       case Teuchos::YAML::PROD_FSEQ_SCALAR: {
         swap(result_any, rhs.at(1));
         Scalar& scalar = any_ref_cast<Scalar>(result_any);
-        scalar.tagged_type = interpret_tag(rhs.at(0));
+        scalar.tag_type = interpret_tag(rhs.at(0));
         break;
       }
       case Teuchos::YAML::PROD_FSEQ_FSEQ:
@@ -328,6 +345,7 @@ class Reader : public Teuchos::Reader {
         scalar.text += str;
         scalar.text = remove_trailing_whitespace(scalar.text);
         scalar.source = Scalar::RAW;
+        scalar.tag_type = -1;
         break;
       }
       case Teuchos::YAML::PROD_SCALAR_DOT:
@@ -341,6 +359,7 @@ class Reader : public Teuchos::Reader {
         scalar.text += rest;
         scalar.text = remove_trailing_whitespace(scalar.text);
         scalar.source = Scalar::RAW;
+        scalar.tag_type = -1;
         break;
       }
       case Teuchos::YAML::PROD_SCALAR_DQUOTED:
@@ -355,6 +374,7 @@ class Reader : public Teuchos::Reader {
         } else if (prod == Teuchos::YAML::PROD_SCALAR_SQUOTED) {
           scalar.source = Scalar::SQUOTED;
         }
+        scalar.tag_type = -1;
         break;
       }
       case Teuchos::YAML::PROD_TAG: {
@@ -377,6 +397,7 @@ class Reader : public Teuchos::Reader {
         Scalar& scalar = make_any_ref<Scalar>(result_any);
         swap(scalar.text, str);
         scalar.source = Scalar::BLOCK;
+        scalar.tag_type = -1;
         break;
       }
       case Teuchos::YAML::PROD_BSCALAR_FIRST: {
@@ -522,14 +543,21 @@ class Reader : public Teuchos::Reader {
     ParameterList& list = make_any_ref<ParameterList>(result_any);
     TEUCHOS_ASSERT(!first_item.empty());
     PLPair& pair = any_ref_cast<PLPair>(first_item);
-    list.set(pair.key, pair.value);
+    list.setEntry(pair.key, pair.value);
   }
   void map_next_item(any& result_any, any& items, any& next_item) {
     using std::swap;
     swap(result_any, items);
     ParameterList& list = any_ref_cast<ParameterList>(result_any);
     PLPair& pair = any_ref_cast<PLPair>(next_item);
-    list.set(pair.key, pair.value);
+    list.setEntry(pair.key, pair.value);
+    std::cerr << "map_next_item set \"" << pair.key << "\"\n";
+    if (pair.value.getAny(false).type() == typeid(ParameterList)) {
+      std::cerr << "it is a list in the PLPair!\n";
+    }
+    if (list.isSublist("pair.key")) {
+      std::cerr << "it is a list in the ParameterList!\n";
+    }
   }
   void map_item(any& result_any, any& key_any, any& value_any, int scalar_type = -1) {
     using std::swap;
@@ -538,6 +566,7 @@ class Reader : public Teuchos::Reader {
       std::string& key = any_ref_cast<Scalar>(key_any).text;
       swap(result.key, key);
     }
+    std::cerr << "resolving value type for key \"" << result.key << "\"\n";
     resolve_map_value(value_any, scalar_type);
     if (value_any.type() == typeid(int)) {
       int value = any_cast<int>(value_any);
@@ -582,15 +611,20 @@ class Reader : public Teuchos::Reader {
   }
   void resolve_map_value(any& value_any, int scalar_type = -1) const {
     if (value_any.type() == typeid(Scalar)) {
+      std::cerr << "value type was originally Scalar\n";
       Scalar& scalar_value = any_ref_cast<Scalar>(value_any);
       if (scalar_type == -1) {
+        std::cerr << "inferring single scalar type...\n";
         scalar_type = scalar_value.infer_type();
       }
       if (scalar_type == Scalar::INT) {
+        std::cerr << "saving as int\n";
         value_any = parse_as<int>(scalar_value.text);
       } else if (scalar_type == Scalar::DOUBLE) {
+        std::cerr << "saving as double\n";
         value_any = parse_as<double>(scalar_value.text);
       } else {
+        std::cerr << "saving as string\n";
         value_any = scalar_value.text;
       }
     } else if (value_any.type() == typeid(Array<Scalar>)) {
