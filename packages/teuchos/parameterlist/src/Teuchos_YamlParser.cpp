@@ -91,6 +91,23 @@ T parse_as(std::string const& text) {
   return value;
 }
 
+bool is_parseable_as_bool(std::string const& text) {
+  std::string lower;
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    lower.push_back(std::tolower(text[i]));
+  }
+  return lower == "true" || lower == "yes" ||
+         lower == "false" || lower == "no";
+}
+
+bool parse_as_bool(std::string const& text) {
+  std::string lower;
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    lower.push_back(std::tolower(text[i]));
+  }
+  return !(lower == "false" || lower == "no");
+}
+
 struct PLPair {
   std::string key;
   ParameterEntry value;
@@ -107,7 +124,8 @@ struct Scalar {
   enum Type {
     STRING = 0,
     DOUBLE = 1,
-    INT    = 2
+    INT    = 2,
+    BOOL   = 3
   };
   int source;
   int tag_type;
@@ -120,6 +138,10 @@ struct Scalar {
     if (source != RAW) {
       std::cerr << "source not raw, return string\n";
       return STRING;
+    }
+    if (is_parseable_as_bool(text)) {
+      std::cerr << "parseable as bool, return bool\n";
+      return BOOL;
     }
     if (is_parseable_as<int>(text)) {
       std::cerr << "parseable as int, return int\n";
@@ -568,7 +590,10 @@ class Reader : public Teuchos::Reader {
     }
     std::cerr << "resolving value type for key \"" << result.key << "\"\n";
     resolve_map_value(value_any, scalar_type);
-    if (value_any.type() == typeid(int)) {
+    if (value_any.type() == typeid(bool)) {
+      bool value = any_cast<bool>(value_any);
+      result.value = ParameterEntry(value);
+    } else if (value_any.type() == typeid(int)) {
       int value = any_cast<int>(value_any);
       result.value = ParameterEntry(value);
     } else if (value_any.type() == typeid(double)) {
@@ -617,7 +642,10 @@ class Reader : public Teuchos::Reader {
         std::cerr << "inferring single scalar type...\n";
         scalar_type = scalar_value.infer_type();
       }
-      if (scalar_type == Scalar::INT) {
+      if (scalar_type == Scalar::BOOL) {
+        std::cerr << "saving as bool\n";
+        value_any = parse_as_bool(scalar_value.text);
+      } else if (scalar_type == Scalar::INT) {
         std::cerr << "saving as int\n";
         value_any = parse_as<int>(scalar_value.text);
       } else if (scalar_type == Scalar::DOUBLE) {
@@ -634,6 +662,8 @@ class Reader : public Teuchos::Reader {
           throw ParserFail("implicitly typed arrays can't be empty\n"
                            "(need to determine their element type)\n");
         }
+        /* Teuchos::Array uses std::vector but doesn't account for std::vector<bool>,
+           so it can't store bools */
         scalar_type = Scalar::INT;
         for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
           scalar_type = std::min(scalar_type, scalars[i].infer_type());
@@ -665,6 +695,8 @@ class Reader : public Teuchos::Reader {
           throw ParserFail("implicitly typed 2D arrays can't be empty\n"
                            "(need to determine their element type)\n");
         }
+        /* Teuchos::Array uses std::vector but doesn't account for std::vector<bool>,
+           so it can't store bools */
         scalar_type = Scalar::INT;
         for (Teuchos_Ordinal i = 0; i < scalars.size(); ++i) {
           if (scalars[0].size() == 0) {
@@ -709,7 +741,8 @@ class Reader : public Teuchos::Reader {
   int interpret_tag(any& tag_any) {
     if (tag_any.type() != typeid(std::string)) return -1;
     std::string& text = any_ref_cast<std::string>(tag_any);
-    if (text.find("int") != std::string::npos) return Scalar::INT;
+    if (text.find("bool") != std::string::npos) return Scalar::BOOL;
+    else if (text.find("int") != std::string::npos) return Scalar::INT;
     else if (text.find("double") != std::string::npos) return Scalar::DOUBLE;
     else if (text.find("string") != std::string::npos) return Scalar::STRING;
     else {
