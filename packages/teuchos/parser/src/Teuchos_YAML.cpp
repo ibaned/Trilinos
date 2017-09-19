@@ -80,11 +80,13 @@ Language make_language() {
   prods[PROD_COMMENT_NEXT]("comment*") >> "comment*", "#", "any*", "NEWLINE";
   prods[PROD_TAG_EMPTY]("tag?");
   prods[PROD_TAG]("tag?") >> "!", "!", "OTHERCHAR+", "WS+";
-  prods[PROD_BSCALAR]("bscalar") >> "|", "WS*", "NEWLINE", "INDENT", "bscalar_items", "DEDENT";
+  prods[PROD_BSCALAR]("bscalar") >> "pipe", "WS*", "NEWLINE", "INDENT", "bscalar_items", "DEDENT";
   prods[PROD_BSCALAR_FIRST]("bscalar_items") >> "bscalar_item";
   prods[PROD_BSCALAR_NEXT]("bscalar_items") >> "bscalar_items", "bscalar_item";
   prods[PROD_BSCALAR_LINE]("bscalar_item") >> "any*", "NEWLINE";
   prods[PROD_BSCALAR_INDENT]("bscalar_item") >> "INDENT", "bscalar_items", "DEDENT";
+  prods[PROD_PIPE_NORMAL]("pipe") >> "|";
+  prods[PROD_PIPE_DASH]("pipe") >> "|", "-";
   prods[PROD_DQUOTED_EMPTY]("dquoted*");
   prods[PROD_DQUOTED_NEXT]("dquoted*") >> "dquoted*", "dquoted";
   prods[PROD_SQUOTED_EMPTY]("squoted*");
