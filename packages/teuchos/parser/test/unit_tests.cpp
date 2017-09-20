@@ -400,9 +400,9 @@ TEUCHOS_UNIT_TEST( Parser, yaml_reader ) {
       "21");
 }
 
-TEUCHOS_UNIT_TEST( Parser, DISABLED_yaml_reader_debug_Match1 ) {
+TEUCHOS_UNIT_TEST( Parser, yaml_reader_Match1 ) {
   ReaderTablesPtr tables = YAML::ask_reader_tables();
-  DebugReader reader(tables, std::cout);
+  Reader reader(tables);
   any result;
   reader.read_string(result,
       "%YAML 1.1\n"
@@ -422,6 +422,29 @@ TEUCHOS_UNIT_TEST( Parser, DISABLED_yaml_reader_debug_Match1 ) {
       "Match1.yaml (inline)");
 }
 
+TEUCHOS_UNIT_TEST( Parser, yaml_reader_Arrays ) {
+  ReaderTablesPtr tables = YAML::ask_reader_tables();
+  Reader reader(tables);
+  any result;
+  reader.read_string(result,
+      "%YAML 1.1\n"
+      "---\n"
+      "Muelu:\n"
+      "  'coarse: max size': 1000\n"
+      "  'multigrid algorithm': unsmoothed\n"
+      "  'smoother: type': RELAXATION\n"
+      "  'smoother: params':\n"
+      "    'relaxation: type': Jacobi\n"
+      "    'relaxation: sweeps': 5\n"
+      "    'relaxation: damping factor': 0.9\n"
+      "    intArray: !!seq [2, 3, 5, 7, 11]\n"
+      "    doubleArray: !!seq [2.718, 3.14159, 1.618, 1.23456789, 42.1337]\n"
+      "  'aggregation: type': uncoupled\n"
+      "  'aggregation: drop tol': 1e-7\n"
+      "  'aggregation: export visualization data': true\n"
+      "...\n",
+      "Match1.yaml (inline)");
+}
 
 TEUCHOS_UNIT_TEST( Parser, mathexpr_language ) {
   LanguagePtr lang = MathExpr::ask_language();

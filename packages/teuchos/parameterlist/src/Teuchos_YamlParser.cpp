@@ -233,7 +233,6 @@ class Reader : public Teuchos::Reader {
         ParameterList& pair_rhs_pl = any_ref_cast<ParameterList>(pair_rhs_any);
         pair_rhs_pl.setName(pair.key);
         result_any = pair_rhs_any;
-        std::cerr << "TOP_BMAP returned a ParameterList\n";
         break;
       }
       case Teuchos::YAML::PROD_TOP_FIRST: {
@@ -279,7 +278,6 @@ class Reader : public Teuchos::Reader {
         any& pair_rhs_any = pair.value.getAny(false);
         TEUCHOS_ASSERT(pair_rhs_any.type() == typeid(ParameterList));
         TEUCHOS_ASSERT(pair.value.isList());
-        std::cerr << "BMAP_BMAP returned a PLPair\n";
         break;
       }
       case Teuchos::YAML::PROD_BMAP_BSEQ: {
@@ -486,6 +484,11 @@ class Reader : public Teuchos::Reader {
         break;
       }
       case Teuchos::YAML::PROD_OTHER_FIRST:
+      case Teuchos::YAML::PROD_SPACE_PLUS_FIRST: {
+        std::string& str = make_any_ref<std::string>(result_any);
+        str.push_back(any_cast<char>(rhs.at(0)));
+        break;
+      }
       case Teuchos::YAML::PROD_REST_SPACE:
       case Teuchos::YAML::PROD_REST_OTHER:
       case Teuchos::YAML::PROD_DESCAPED_DQUOTED:
@@ -493,8 +496,7 @@ class Reader : public Teuchos::Reader {
       case Teuchos::YAML::PROD_SQUOTED_COMMON:
       case Teuchos::YAML::PROD_ANY_COMMON:
       case Teuchos::YAML::PROD_COMMON_SPACE:
-      case Teuchos::YAML::PROD_COMMON_OTHER:
-      case Teuchos::YAML::PROD_SPACE_PLUS_FIRST: {
+      case Teuchos::YAML::PROD_COMMON_OTHER: {
         swap(result_any, rhs.at(0));
         break;
       }
@@ -503,7 +505,6 @@ class Reader : public Teuchos::Reader {
       case Teuchos::YAML::PROD_SQUOTED_NEXT:
       case Teuchos::YAML::PROD_ANY_NEXT:
       case Teuchos::YAML::PROD_REST_NEXT:
-      case Teuchos::YAML::PROD_OTHER_NEXT:
       case Teuchos::YAML::PROD_SPACE_STAR_NEXT:
       case Teuchos::YAML::PROD_SPACE_PLUS_NEXT: {
         TEUCHOS_TEST_FOR_EXCEPTION(rhs.at(0).empty(), ParserFail,
