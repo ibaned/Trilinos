@@ -78,18 +78,10 @@ namespace TeuchosTests
     for(size_t i = 0; i < matchStems.size(); i++)
     {
       string yamlFile = matchStems[i] + ".yaml";
-    //Teuchos::ReaderTablesPtr tables = Teuchos::YAML::ask_reader_tables();
-    //Teuchos::DebugReader reader(tables, std::cout);
-    //Teuchos::any result;
-    //reader.read_file(result, yamlFile);
-    //std::cerr << "done debug reading \"" << yamlFile << "\"\n";
       RCP<ParameterList> yamlList = Teuchos::getParametersFromYamlFile(yamlFile);
-      std::cerr << "done reading \"" << yamlFile << "\"\n";
       string xmlFile =  matchStems[i] + ".xml";
       RCP<ParameterList> xmlList = Teuchos::getParametersFromXmlFile(xmlFile);
       TEST_EQUALITY(Teuchos::haveSameValues(*xmlList, *yamlList), true);
-      std::cerr << "XML List:\n" << *xmlList << '\n';
-      std::cerr << "YAML List:\n" << *yamlList << '\n';
     }
   }
   TEUCHOS_UNIT_TEST(YAML, IntVsDouble)
@@ -159,6 +151,7 @@ namespace TeuchosTests
       "  </ParameterList>\n";
     RCP<ParameterList> xmlParams = Teuchos::getParametersFromXmlString(xmlString);
     std::stringstream yamlOutStream;
+    yamlOutStream << std::showpoint << std::fixed << std::setprecision(1);
     Teuchos::YAMLParameterList::writeYamlStream(yamlOutStream, *xmlParams);
     std::string yamlString = yamlOutStream.str();
     std::string expectedYamlString =
@@ -168,7 +161,7 @@ namespace TeuchosTests
       "  Problem: \n"
       "    Neumann BCs: \n"
       "      Time Dependent NBC on SS cyl_outside for DOF all set P: \n"
-      "        BC Values: [[0], [10], [20]]\n"
+      "        BC Values: [[0.0], [10.0], [20.0]]\n"
       "  Discretization: \n"
       "    Node Set Associations: [['1', '2'], [top, bottom]]\n"
       "...\n";
@@ -177,6 +170,7 @@ namespace TeuchosTests
     RCP<ParameterList> yamlParams;
     yamlParams = Teuchos::YAMLParameterList::parseYamlStream(yamlInStream);
     std::stringstream yamlOutStream2;
+    yamlOutStream2 << std::showpoint << std::fixed << std::setprecision(1);
     Teuchos::YAMLParameterList::writeYamlStream(yamlOutStream2, *yamlParams);
     std::string yamlString2 = yamlOutStream2.str();
     TEST_EQUALITY(yamlString2, expectedYamlString);
