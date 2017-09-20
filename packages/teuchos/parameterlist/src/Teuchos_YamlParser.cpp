@@ -180,17 +180,6 @@ class Reader : public Teuchos::Reader {
     TRIM_DASH
   };
   virtual void at_shift(any& result_any, int token, std::string& text) {
-  //std::string text_escaped;
-  //for (std::size_t i = 0; i < text.size(); ++i) {
-  //  char c = text[i];
-  //  switch (c) {
-  //    case '\n': text_escaped.append("\\n"); break;
-  //    case '\t': text_escaped.append("\\t"); break;
-  //    case '\r': text_escaped.append("\\r"); break;
-  //    default: text_escaped.push_back(c);
-  //  }
-  //}
-  //std::cerr << "SHIFT (" << at(grammar->symbol_names, token) << ")[" << text_escaped << "]\n";
     using std::swap;
     switch (token) {
       case Teuchos::YAML::TOK_NEWLINE: {
@@ -206,17 +195,6 @@ class Reader : public Teuchos::Reader {
     }
   }
   virtual void at_reduce(any& result_any, int prod, std::vector<any>& rhs) {
-  //{
-  //  std::cerr << "REDUCE";
-  //  const Teuchos::Grammar::Production& prod2 = at(grammar->productions, prod);
-  //  for (int i = 0; i < size(prod2.rhs); ++i) {
-  //    const std::string& rhs_name = at(grammar->symbol_names, at(prod2.rhs, i));
-  //    std::string rhs_text;
-  //    std::cerr << " (" << rhs_name << ")[" << rhs_text << "]";
-  //  }
-  //  const std::string& lhs_name = at(grammar->symbol_names, prod2.lhs);
-  //  std::cerr << " -> (" << lhs_name << ")[" /* << lhs_text */ << "]\n";
-  //}
     using std::swap;
     switch (prod) {
       case Teuchos::YAML::PROD_DOC: {
@@ -723,8 +701,9 @@ class Reader : public Teuchos::Reader {
           if (scalars[i].size() != scalars[0].size()) {
             throw ParserFail("2D array: sub-arrays are different sizes");
           }
-          for (Teuchos_Ordinal j = 0; j < scalars.size(); ++j) {
-            scalar_type = std::min(scalar_type, scalars[i][j].infer_type());
+          for (Teuchos_Ordinal j = 0; j < scalars[i].size(); ++j) {
+            int item_type = scalars[i][j].infer_type();
+            scalar_type = std::min(scalar_type, item_type);
           }
         }
       }
