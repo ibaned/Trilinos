@@ -802,6 +802,7 @@ void updateParametersFromYamlCString(const char* const data,
                                      const Teuchos::Ptr<Teuchos::ParameterList>& paramList,
                                      bool overwrite)
 {
+  std::cerr << "updateParametersFromYamlCString:\n" << data << '\n';
   Teuchos::RCP<Teuchos::ParameterList> updated = YAMLParameterList::parseYamlText(data);
   if(overwrite)
   {
@@ -817,6 +818,7 @@ void updateParametersFromYamlString(const std::string& yamlData,
                                   const Teuchos::Ptr<Teuchos::ParameterList>& paramList,
                                   bool overwrite)
 {
+  std::cerr << "updateParametersFromYamlString:\n" << yamlData << '\n';
   Teuchos::RCP<Teuchos::ParameterList> updated = YAMLParameterList::parseYamlText(yamlData);
   if(overwrite)
   {
@@ -875,9 +877,7 @@ std::string convertXmlToYaml(const std::string& xmlFileName)
 
 void convertXmlToYaml(const std::string& xmlFileName, const std::string& yamlFileName)
 {
-  //load the parameter list from xml
   Teuchos::RCP<Teuchos::ParameterList> toConvert = Teuchos::getParametersFromXmlFile(xmlFileName);
-  //replace the file extension ".xml" with ".yaml", or append it if there was no extension
   YAMLParameterList::writeYamlFile(yamlFileName, *toConvert);
 }
 
@@ -887,9 +887,7 @@ void convertXmlToYaml(std::istream& xmlStream, std::ostream& yamlStream)
   std::istreambuf_iterator<char> begin(xmlStream);
   std::istreambuf_iterator<char> end;
   std::string xmlString(begin, end);
-  //load the parameter list from xml
   Teuchos::RCP<Teuchos::ParameterList> toConvert = Teuchos::getParametersFromXmlString(xmlString);
-  //replace the file extension ".xml" with ".yaml", or append it if there was no extension
   YAMLParameterList::writeYamlStream(yamlStream, *toConvert);
 }
 
@@ -897,6 +895,7 @@ namespace YAMLParameterList {
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 {
+  std::cerr << "parseYamlText:\n" << text << '\n';
   Teuchos::YAMLParameterList::Reader reader;
   any result;
   reader.read_string(result, text, "parseYamlText");
@@ -1111,7 +1110,7 @@ void writeParameter(const std::string& paramName, const Teuchos::ParameterEntry&
     if(strchr(str.c_str(), '\n'))
     {
       //need explicit indentation so that indentation in the string is preserved
-      yaml << "|2-\n";    
+      yaml << "|-\n";
       //for each line, apply indent then print the line verbatim
       size_t index = 0;
       while(true)
@@ -1147,9 +1146,15 @@ void writeParameter(const std::string& paramName, const Teuchos::ParameterEntry&
 
 void generalWriteString(const std::string& str, std::ostream& yaml)
 {
+  // default to single quoting
   if(stringNeedsQuotes(str))
   {
-    yaml << '\'' << str << '\'';
+    yaml << '\'';
+    for (std::size_t i = 0; i < str.size(); ++i) {
+      if (str[i] == '\'') yaml << "''";
+      else yaml << str[i];
+    }
+    yaml << '\'';
   }
   else
   {
@@ -1163,13 +1168,14 @@ void generalWriteDouble(double d, std::ostream& yaml)
 }
 
 static bool containsSpecialCharacters(std::string const& s) {
-  char const* const control_chars = ":{}[],&*#?|-<>=!%@\\";
+  char const* const control_chars = ":.{}[],&*#?|-<>=!%@\\";
   return s.find_first_of(control_chars) != std::string::npos;
 }
 
 bool stringNeedsQuotes(const std::string& s)
 {
-  return containsSpecialCharacters(s) ||
+  return s.empty() ||
+         containsSpecialCharacters(s) ||
          is_parseable_as<int>(s) ||
          is_parseable_as<double>(s);
 }
