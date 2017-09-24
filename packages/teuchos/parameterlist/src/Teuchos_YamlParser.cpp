@@ -514,6 +514,7 @@ class Reader : public Teuchos::Reader {
         result_any = '\\';
         break;
       }
+      case Teuchos::YAML::PROD_REST_SQUOT:
       case Teuchos::YAML::PROD_DQUOTED_SQUOT:
       case Teuchos::YAML::PROD_ANY_SQUOT: {
         result_any = '\'';
@@ -1166,7 +1167,7 @@ void generalWriteDouble(double d, std::ostream& yaml)
 }
 
 static bool containsSpecialCharacters(std::string const& s) {
-  char const* const control_chars = ":.{}[],&*#?|-<>=!%@\\";
+  char const* const control_chars = ":'.{}[],&*#?|-<>=!%@\\";
   return s.find_first_of(control_chars) != std::string::npos;
 }
 

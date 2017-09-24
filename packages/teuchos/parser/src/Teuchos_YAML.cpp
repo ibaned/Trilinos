@@ -106,6 +106,7 @@ Language make_language() {
   prods[PROD_REST_SPACE]("rest") >> "WS";
   prods[PROD_REST_DOT]("rest") >> ".";
   prods[PROD_REST_DASH]("rest") >> "-";
+  prods[PROD_REST_SQUOT]("rest") >> "'";
   prods[PROD_REST_OTHER]("rest") >> "OTHERCHAR";
   prods[PROD_DESCAPED_DQUOT]("descaped") >> "\"";
   prods[PROD_DESCAPED_SLASH]("descaped") >> "\\";
