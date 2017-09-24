@@ -163,10 +163,10 @@ struct Scalar {
 };
 
 bool operator==(PLPair const&, PLPair const&) { return false; }
-bool operator<<(std::ostream& os, PLPair const&) { return os; }
+std::ostream& operator<<(std::ostream& os, PLPair const&) { return os; }
 
 bool operator==(Scalar const&, Scalar const&) { return false; }
-bool operator<<(std::ostream& os, Scalar const&) { return os; }
+std::ostream& operator<<(std::ostream& os, Scalar const&) { return os; }
 
 namespace YAMLParameterList {
 
@@ -855,8 +855,6 @@ void writeParameterListToYamlFile(
   YAMLParameterList::writeYamlFile(yamlFileName, paramList);
 }
 
-namespace YAMLParameterList {
-
 std::string convertXmlToYaml(const std::string& xmlFileName)
 {
   //load the parameter list from xml
@@ -894,6 +892,8 @@ void convertXmlToYaml(std::istream& xmlStream, std::ostream& yamlStream)
   //replace the file extension ".xml" with ".yaml", or append it if there was no extension
   YAMLParameterList::writeYamlStream(yamlStream, *toConvert);
 }
+
+namespace YAMLParameterList {
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 {
