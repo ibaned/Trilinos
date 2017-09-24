@@ -889,7 +889,8 @@ void convertXmlToYaml(std::istream& xmlStream, std::ostream& yamlStream)
   YAMLParameterList::writeYamlStream(yamlStream, *toConvert);
 }
 
-namespace YAMLParameterList {
+namespace YAMLParameterList
+{
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 {
