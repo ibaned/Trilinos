@@ -106,7 +106,7 @@ namespace TeuchosTests
       RCP<ParameterList> xmlList = Teuchos::getParametersFromXmlFile(xmlFiles[i]);
       string yamlText = yamlStream.str();
       RCP<ParameterList> yamlList = Teuchos::YAMLParameterList::parseYamlText(yamlText);
-      TEST_EQUALITY(Teuchos::haveSameValues(*xmlList, *yamlList), true);
+      TEST_EQUALITY(Teuchos::haveSameValues(*xmlList, *yamlList, true), true);
     }
   }
 

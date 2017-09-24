@@ -802,7 +802,6 @@ void updateParametersFromYamlCString(const char* const data,
                                      const Teuchos::Ptr<Teuchos::ParameterList>& paramList,
                                      bool overwrite)
 {
-  std::cerr << "updateParametersFromYamlCString:\n" << data << '\n';
   Teuchos::RCP<Teuchos::ParameterList> updated = YAMLParameterList::parseYamlText(data);
   if(overwrite)
   {
@@ -818,7 +817,6 @@ void updateParametersFromYamlString(const std::string& yamlData,
                                   const Teuchos::Ptr<Teuchos::ParameterList>& paramList,
                                   bool overwrite)
 {
-  std::cerr << "updateParametersFromYamlString:\n" << yamlData << '\n';
   Teuchos::RCP<Teuchos::ParameterList> updated = YAMLParameterList::parseYamlText(yamlData);
   if(overwrite)
   {
@@ -895,7 +893,6 @@ namespace YAMLParameterList {
 
 Teuchos::RCP<Teuchos::ParameterList> parseYamlText(const std::string& text)
 {
-  std::cerr << "parseYamlText:\n" << text << '\n';
   Teuchos::YAMLParameterList::Reader reader;
   any result;
   reader.read_string(result, text, "parseYamlText");
