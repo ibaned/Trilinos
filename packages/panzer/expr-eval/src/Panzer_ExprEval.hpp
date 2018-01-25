@@ -43,7 +43,11 @@
 #ifndef PANZER_EXPR_EVAL_HPP
 #define PANZER_EXPR_EVAL_HPP
 
+#include <functional>
+
 #include <Teuchos_Reader.hpp>
+
+#include <Kokkos_Core.hpp>
 
 namespace panzer
 {
@@ -54,6 +58,24 @@ class ExprEvalBase : public Teuchos::Reader {
  protected:
   void at_shift(Teuchos::any& result, int token, std::string& text) override;
   void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>& rhs) override;
+ public:
+  using Function = std::function<void(Teuchos::any&, std::vector<Teuchos::any>& rhs)>;
+  std::map<std::string, Teuchos::any> symbol_map;
+ protected:
+  void ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right);
+  void or_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void and_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void gt_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void lt_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void geq_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void leq_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void eq_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void add_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void sub_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void prod_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void div_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void pow_op(Teuchos::any& result, Teuchos::any& right);
+  void neg_op(Teuchos::any& result, Teuchos::any& right);
 };
 
 template <typename ScalarPointsView>
