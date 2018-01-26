@@ -40,20 +40,32 @@
 // ***********************************************************************
 // @HEADER
 
-#include <Panzer_ExprEval.hpp>
+#include <Panzer_ExprEval_impl.hpp>
 
 #include <cstdlib>
 
 #include <Teuchos_MathExpr.hpp>
 
-namespace panzer
+namespace Teuchos
 {
 
-ExprEvalBase::ExprEvalBase()
+/* get around really really really bad Teuchos::any design */
+std::ostream& operator<<(std::ostream& s, std::vector<Teuchos::any> const&) {
+  return s;
+}
+
+}
+
+namespace panzer
+{
+namespace Expr
+{
+
+EvalBase::EvalBase()
   : Teuchos::Reader(Teuchos::MathExpr::ask_reader_tables()) {
 }
 
-void ExprEvalBase::at_shift(Teuchos::any& result, int token, std::string& text) {
+void EvalBase::at_shift(Teuchos::any& result_any, int token, std::string& text) {
   using std::swap;
   switch (token) {
     case Teuchos::MathExpr::TOK_NAME: {
@@ -68,7 +80,7 @@ void ExprEvalBase::at_shift(Teuchos::any& result, int token, std::string& text) 
   }
 }
 
-virtual void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>& rhs) {
+void EvalBase::at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>& rhs) {
   using std::swap;
   switch (prod) {
     case Teuchos::MathExpr::PROD_PROGRAM: {
@@ -82,7 +94,7 @@ virtual void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>
     }
     case Teuchos::MathExpr::PROD_ASSIGN: {
       std::string const& name = Teuchos::any_ref_cast<std::string>(rhs.at(0));
-      swap(symbols[name], rhs.at(4));
+      swap(symbol_map[name], rhs.at(4));
       break;
     }
     case Teuchos::MathExpr::PROD_YES_EXPR:
@@ -101,51 +113,51 @@ virtual void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>
       this->ternary_op(result, rhs.at(0), rhs.at(3), rhs.at(6));
       break;
     case Teuchos::MathExpr::PROD_OR:
-      this->or_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::OR, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_AND:
-      this->and_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::AND, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_GT:
-      this->gt_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::GT, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_LT:
-      this->lt_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::LT, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_GEQ:
-      this->geq_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::GEQ, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_LEQ:
-      this->leq_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::LEQ, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_EQ:
-      this->eq_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::EQ, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_BOOL_PARENS:
       swap(result, rhs.at(2));
       break;
     case Teuchos::MathExpr::PROD_ADD:
-      this->add_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::ADD, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_SUB:
-      this->sub_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::SUB, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_MUL:
-      this->prod_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::MUL, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_DIV:
-      this->div_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::DIV, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_POW:
-      this->pow_op(result, rhs.at(0), rhs.at(3));
+      this->binary_op(BinaryOpCode::POW, result, rhs.at(0), rhs.at(3));
       break;
     case Teuchos::MathExpr::PROD_CALL: {
       std::string const& name = Teuchos::any_ref_cast<std::string>(rhs.at(0));
-      auto it = symbols.find(name);
-      TEUCHOS_TEST_FOR_EXCEPTION(it == symbols.end(), Teuchos::ParserFail,
+      auto it = symbol_map.find(name);
+      TEUCHOS_TEST_FOR_EXCEPTION(it == symbol_map.end(), Teuchos::ParserFail,
           "symbol \"" << name << "\" being called doesn't exist!");
       Function& func = Teuchos::any_ref_cast<Function>(it->second);
-      std::vector<Teuchos::any>& args = Teuchos::any_ref_cast<std::vector<Teuchos::any>>>(rhs.at(4));
+      std::vector<Teuchos::any>& args = Teuchos::any_ref_cast<std::vector<Teuchos::any>>(rhs.at(4));
       func(result, args);
       break;
     }
@@ -155,14 +167,14 @@ virtual void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>
     }
     case Teuchos::MathExpr::PROD_FIRST_ARG: {
       std::vector<Teuchos::any>& args = Teuchos::make_any_ref<std::vector<Teuchos::any>>(result);
-      args.push_back();
+      args.push_back(Teuchos::any{});
       swap(args.back(), rhs.at(0));
       break;
     }
     case Teuchos::MathExpr::PROD_NEXT_ARG: {
       swap(result, rhs.at(0));
       std::vector<Teuchos::any>& args = Teuchos::any_ref_cast<std::vector<Teuchos::any>>(result);
-      args.push_back();
+      args.push_back(Teuchos::any{});
       swap(args.back(), rhs.at(3));
       break;
     }
@@ -177,15 +189,15 @@ virtual void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>
       break;
     case Teuchos::MathExpr::PROD_VAR:
       std::string const& name = Teuchos::any_ref_cast<std::string>(rhs.at(0));
-      auto it = symbols.find(name);
-      TEUCHOS_TEST_FOR_EXCEPTION(it == symbols.end(), Teuchos::ParserFail,
+      auto it = symbol_map.find(name);
+      TEUCHOS_TEST_FOR_EXCEPTION(it == symbol_map.end(), Teuchos::ParserFail,
           "symbol " << name << " being referenced doesn't exist!");
       swap(result, it->second);
       break;
   }
 }
 
-void Eval::ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+void EvalBase::ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
   bool cond_is_view;
   bool cond_is_bool;
   this->inspect_arg(cond, cond_is_view, cond_is_bool);
@@ -219,26 +231,28 @@ void Eval::ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& le
 
 static const char* get_op_syntax(BinaryOpCode code) {
   switch (code) {
-    case OR: return "||";
-    case AND: return "&&";
-    case GT: return ">";
-    case LT: return "<";
-    case GEQ: return ">=";
-    case LEQ: return "<=";
-    case EQ: return "==";
-    case ADD: return "+";
-    case SUB: return "-";
-    case PROD: return "*";
-    case DIV: return "/";
+    case BinaryOpCode::OR: return "||";
+    case BinaryOpCode::AND: return "&&";
+    case BinaryOpCode::GT: return ">";
+    case BinaryOpCode::LT: return "<";
+    case BinaryOpCode::GEQ: return ">=";
+    case BinaryOpCode::LEQ: return "<=";
+    case BinaryOpCode::EQ: return "==";
+    case BinaryOpCode::ADD: return "+";
+    case BinaryOpCode::SUB: return "-";
+    case BinaryOpCode::MUL: return "*";
+    case BinaryOpCode::DIV: return "/";
+    case BinaryOpCode::POW: return "^";
   }
+  return "";
 }
 
-void Eval::binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+void EvalBase::binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
   bool is_view[2];
   bool is_bool[2];
   this->inspect_arg(left, is_view[0], is_bool[0]);
   this->inspect_arg(right, is_view[1], is_bool[1]);
-  bool expect_booleans = (code == AND || code == OR);
+  bool expect_booleans = (code == BinaryOpCode::AND || code == BinaryOpCode::OR);
   TEUCHOS_TEST_FOR_EXCEPTION(is_bool[0] != expect_booleans, Teuchos::ParserFail,
       "Left argument to '" << get_op_syntax(code) << "' is " << (is_bool[0] ? "" : "not") << " boolean!");
   TEUCHOS_TEST_FOR_EXCEPTION(is_bool[1] != expect_booleans, Teuchos::ParserFail,
@@ -267,10 +281,10 @@ void Eval::binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left
   }
 }
 
-void neg_op(Teuchos::any& result, Teuchos::any& right) {
+void EvalBase::neg_op(Teuchos::any& result, Teuchos::any& right) {
   bool is_view;
   bool is_bool;
-  this->inspect_arg(left, is_view, is_bool);
+  this->inspect_arg(right, is_view, is_bool);
   TEUCHOS_TEST_FOR_EXCEPTION(is_bool, Teuchos::ParserFail,
       "Can't negate a boolean");
   if (is_view) {
@@ -280,4 +294,6 @@ void neg_op(Teuchos::any& result, Teuchos::any& right) {
   }
 }
 
-} // end namespace panzer
+template class Eval<Kokkos::View<double*>>;
+
+}} // end namespace panzer::Expr

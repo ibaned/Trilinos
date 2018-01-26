@@ -64,8 +64,9 @@ enum class BinaryOpCode {
   EQ,
   ADD,
   SUB,
-  PROD,
+  MUL,
   DIV,
+  POW,
 };
 
 class EvalBase : public Teuchos::Reader {
@@ -79,7 +80,7 @@ class EvalBase : public Teuchos::Reader {
   std::map<std::string, Teuchos::any> symbol_map;
  protected:
   void ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right);
-  void binary_op(Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
+  void binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
   void neg_op(Teuchos::any& result, Teuchos::any& right);
  protected:
   virtual void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) = 0;
@@ -87,13 +88,13 @@ class EvalBase : public Teuchos::Reader {
   virtual void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void view_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void view_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void view_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void view_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void single_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void view_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void view_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
   virtual void single_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
 };
@@ -102,7 +103,24 @@ template <typename ViewType>
 class Eval : public EvalBase {
  public:
   Eval();
+ protected:
+  void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) override;
+  void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void view_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void view_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void view_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void view_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void single_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void view_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void view_neg_op(Teuchos::any& result, Teuchos::any& right) override;
+  void single_neg_op(Teuchos::any& result, Teuchos::any& right) override;
 };
+
+extern template class Eval<Kokkos::View<double*>>;
 
 }} // end namespace panzer::Expr
 
