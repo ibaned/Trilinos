@@ -211,7 +211,7 @@ void EvalBase::at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::an
       auto it = symbol_map.find(name);
       TEUCHOS_TEST_FOR_EXCEPTION(it == symbol_map.end(), Teuchos::ParserFail,
           "symbol " << name << " being referenced doesn't exist!");
-      swap(result, it->second);
+      result = it->second;
       break;
   }
 }
