@@ -74,7 +74,6 @@ enum class BinaryOpCode {
 class EvalBase : public Teuchos::Reader {
  public:
   EvalBase();
-  void set(std::string const& name, bool value);
   using Function = std::function<void(Teuchos::any&, std::vector<Teuchos::any>& rhs)>;
   void set(std::string const& name, Function const& value);
   template <typename T>
@@ -93,19 +92,19 @@ class EvalBase : public Teuchos::Reader {
   void binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
   void neg_op(Teuchos::any& result, Teuchos::any& right);
   virtual void make_constant(Teuchos::any& result, double value) = 0;
-  virtual void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) = 0;
+  virtual void inspect_arg(Teuchos::any const& arg, bool& is_many, bool& is_bool) = 0;
   virtual void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void single_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void many_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void many_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void single_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void many_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void many_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void view_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
+  virtual void single_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void many_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
+  virtual void many_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
   virtual void single_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
 };
 
@@ -137,41 +136,45 @@ struct RebindViewType<Kokkos::View<DT, VP ...>, NewScalarType> {
   using type = Kokkos::View<typename RebindDataType<DT, NewScalarType>::type, VP ...>;
 };
 
-template <typename ViewType>
-struct ReadViewType;
-
 template <typename DT, typename ... VP>
-struct ReadViewType<Kokkos::View<DT, VP ...>> {
-  using type = Kokkos::View<typename RebindDataType<DT, typename Kokkos::View<DT, VP ...>::const_value_type>::type, VP ...>;
-};
-
-template <typename ViewType>
 class Eval : public EvalBase {
  public:
-  using scalar_type = typename ViewType::value_type;
-  using read_view_type = typename ReadViewType<ViewType>::type;
+  using original_view_type = Kokkos::View<DT, VP ...>;
+  using view_data_type = typename original_view_type::data_type;
+  using scalar_type = typename original_view_type::non_const_value_type;
+  using view_type = Kokkos::View<typename RebindDataType<view_data_type, scalar_type>::type, VP ...>;
+  using const_view_type = Kokkos::View<typename RebindDataType<view_data_type, scalar_type const>::type, VP ...>;
+  using bool_view_type = Kokkos::View<typename RebindDataType<view_data_type, bool>::type, VP ...>;
+  using const_bool_view_type = Kokkos::View<typename RebindDataType<view_data_type, bool const>::type, VP ...>;
+  using single_view_type = Kokkos::View<scalar_type, VP ...>;
+  using const_single_view_type = Kokkos::View<scalar_type const, VP ...>;
+  using single_bool_view_type = Kokkos::View<bool, VP ...>;
+  using const_single_bool_view_type = Kokkos::View<bool const, VP ...>;
+
   Eval();
+
+  void set(std::string const& name, bool value);
   void set(std::string const& name, scalar_type const& value);
-  void set(std::string const& name, read_view_type const& value);
+  void set(std::string const& name, const_view_type const& value);
  protected:
   void make_constant(Teuchos::any& result, double value) override;
-  void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) override;
+  void inspect_arg(Teuchos::any const& arg, bool& is_many, bool& is_bool) override;
   void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
-  void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
-  void view_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
-  void view_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void single_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void many_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
+  void many_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
   void single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void view_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void view_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void single_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void many_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void many_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
   void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void single_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void view_view_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void view_neg_op(Teuchos::any& result, Teuchos::any& right) override;
+  void single_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void many_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
+  void many_neg_op(Teuchos::any& result, Teuchos::any& right) override;
   void single_neg_op(Teuchos::any& result, Teuchos::any& right) override;
 };
 
-extern template class Eval<Kokkos::View<double*>>;
+extern template class Eval<double*>;
 
 }} // end namespace panzer::Expr
 

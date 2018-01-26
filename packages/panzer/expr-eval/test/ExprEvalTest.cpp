@@ -48,21 +48,21 @@ namespace panzer {
 
 TEUCHOS_UNIT_TEST(ExprEval, test_1_plus_1)
 {
-  Expr::Eval<Kokkos::View<double*>> eval;
+  Expr::Eval<double*> eval;
   Teuchos::any result;
   eval.read_string(result, "1+1", "one plus one");
-  double x = Teuchos::any_cast<double>(result);
-  TEUCHOS_ASSERT(x == 2.0);
+  Kokkos::View<double> x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  TEUCHOS_ASSERT(x() == 2.0);
   eval.set("a", 5.0);
   eval.read_string(result, "a+a", "a plus a");
-  x = Teuchos::any_cast<double>(result);
-  TEUCHOS_ASSERT(x == 10.0);
+  x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  TEUCHOS_ASSERT(x() == 10.0);
   eval.read_string(result, "b=4;\na+b", "a plus b");
-  x = Teuchos::any_cast<double>(result);
-  TEUCHOS_ASSERT(x == 9.0);
+  x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  TEUCHOS_ASSERT(x() == 9.0);
   eval.read_string(result, "a-b", "a minus b");
-  x = Teuchos::any_cast<double>(result);
-  TEUCHOS_ASSERT(x == 1.0);
+  x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  TEUCHOS_ASSERT(x() == 1.0);
 }
 
 }

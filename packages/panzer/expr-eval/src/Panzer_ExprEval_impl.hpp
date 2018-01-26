@@ -163,61 +163,21 @@ struct ScalarNeg {
   }
 };
 
-template <typename ViewType>
-struct WriteViewType;
-
-template <typename DT, typename ... VP>
-struct WriteViewType<Kokkos::View<DT, VP ...>> {
-  using type = Kokkos::View<typename RebindDataType<DT, typename Kokkos::View<DT, VP ...>::non_const_value_type>::type, VP ...>;
-};
-
-template <typename ViewType>
-struct ReadBoolViewType;
-
-template <typename DT, typename ... VP>
-struct ReadBoolViewType<Kokkos::View<DT, VP ...>> {
-  using type = Kokkos::View<typename RebindDataType<DT, bool const>::type, VP ...>;
-};
-
-template <typename ViewType>
-struct WriteBoolViewType;
-
-template <typename DT, typename ... VP>
-struct WriteBoolViewType<Kokkos::View<DT, VP ...>> {
-  using type = Kokkos::View<typename RebindDataType<DT, bool>::type, VP ...>;
-};
-
-template <typename Indexed, size_t Rank>
+template <typename Indexed, size_t IterationRank, size_t IndexedRank = Indexed::rank>
 struct Indexer;
 
-template <typename Indexed>
-struct Indexer<Indexed, 1> {
+template <typename ViewType>
+struct Indexer<ViewType, 1, 0> {
   template <typename Integral>
   static KOKKOS_FORCEINLINE_FUNCTION
-  Indexed& index(Indexed& x, Integral) { return x; }
+  typename ViewType::reference_type index(ViewType const& x, Integral) { return x(); }
 };
 
-template <typename DT, typename ... VP>
-struct Indexer<Kokkos::View<DT, VP...> const, 1> {
+template <typename ViewType>
+struct Indexer<ViewType, 1, 1> {
   template <typename Integral>
   static KOKKOS_FORCEINLINE_FUNCTION
-  typename Kokkos::View<DT, VP...>::reference_type
-  index(Kokkos::View<DT, VP...> const& x, Integral i) { return x(i); }
-};
-
-template <typename Indexed>
-struct Indexer<Indexed, 2> {
-  template <typename Integral>
-  static KOKKOS_FORCEINLINE_FUNCTION
-  Indexed& index(Indexed& x, Integral, Integral) { return x; }
-};
-
-template <typename DT, typename ... VP>
-struct Indexer<Kokkos::View<DT, VP...>, 2> {
-  template <typename Integral>
-  static KOKKOS_FORCEINLINE_FUNCTION
-  typename Kokkos::View<DT, VP...>::reference_type
-  index(Kokkos::View<DT, VP...> const& x, Integral i, Integral j) { return x(i, j); }
+  typename ViewType::reference_type index(ViewType const& x, Integral i) { return x(i); }
 };
 
 template <typename T>
@@ -312,39 +272,18 @@ struct SetDefaultExecSpace<Kokkos::AnonymousSpace, Default> {
   using type = Default;
 };
 
-template <typename A, typename B>
-struct ResultType;
-
-template <typename A>
-struct ResultType<A, A> {
-  using type = A;
-};
-
-template <typename B, typename DT, typename ... VP>
-struct ResultType<Kokkos::View<DT, VP...>, B> {
-  using type = typename WriteViewType<Kokkos::View<DT, VP...>>::type;
-};
-
-template <typename A, typename DT, typename ... VP>
-struct ResultType<A, Kokkos::View<DT, VP...>> {
-  using type = typename WriteViewType<Kokkos::View<DT, VP...>>::type;
-};
-
-template <typename DT, typename ... VP>
-struct ResultType<Kokkos::View<DT, VP...>, Kokkos::View<DT, VP...>> {
-  using type = typename WriteViewType<Kokkos::View<DT, VP...>>::type;
-};
-
-template <typename T, size_t Rank>
+template <typename T, size_t IterationRank, size_t TRank = T::Rank>
 struct Allocator;
 
-template <typename T>
-struct Allocator<T, 1> {
-  static void allocate(std::string const& name, T&, size_t) {}
+template <typename DT, typename ... VP>
+struct Allocator<Kokkos::View<DT, VP ...>, 1, 0> {
+  static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view, size_t n0) {
+    view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name)};
+  }
 };
 
 template <typename DT, typename ... VP>
-struct Allocator<Kokkos::View<DT, VP ...>, 1> {
+struct Allocator<Kokkos::View<DT, VP ...>, 1, 1> {
   static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view, size_t n0) {
     view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name), n0};
   }
@@ -352,6 +291,14 @@ struct Allocator<Kokkos::View<DT, VP ...>, 1> {
 
 template <typename Op, typename Left, typename Right, size_t Rank = RankForAll<Left, Right>::value>
 struct BinaryFunctor;
+
+template <typename A, typename B>
+struct ResultType {
+  static constexpr size_t a_rank = A::rank;
+  static constexpr size_t b_rank = B::rank;
+  using biggest_type = typename std::conditional<(b_rank > a_rank), B, A>::type;
+  using type = typename RebindViewType<biggest_type, typename biggest_type::non_const_value_type>::type;
+};
 
 template <typename Op, typename Left, typename Right>
 struct BinaryFunctor<Op, Left, Right, 0> {
@@ -362,7 +309,7 @@ struct BinaryFunctor<Op, Left, Right, 0> {
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
-    result_ = Op::apply(left_, right_);
+    result_() = Op::apply(left_(), right_());
     result = result_;
   }
 };
@@ -381,8 +328,8 @@ struct BinaryFunctor<Op, Left, Right, 1> {
   void operator()(typename execution_space::size_type i) const {
     Indexer<Result, 1>::index(result_, i) =
       Op::apply(
-          Indexer<Left const, 1>::index(left_, i),
-          Indexer<Right const, 1>::index(right_, i));
+          Indexer<Left, 1>::index(left_, i),
+          Indexer<Right, 1>::index(right_, i));
   }
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
@@ -397,40 +344,57 @@ struct BinaryFunctor<Op, Left, Right, 1> {
   }
 };
 
-template <typename ViewType>
-Eval<ViewType>::Eval()
+template <typename DT, typename ... VP>
+Eval<DT, VP ...>::Eval()
   : EvalBase() 
 {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::set(std::string const& name, scalar_type const& value) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::set(std::string const& name, bool value) {
+  single_bool_view_type view;
+  auto host_view = Kokkos::create_mirror_view(view);
+  host_view() = value;
+  Kokkos::deep_copy(view, host_view);
+  symbol_map[name] = const_single_bool_view_type{view};
+}
+
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::set(std::string const& name, scalar_type const& value) {
+  single_view_type view;
+  auto host_view = Kokkos::create_mirror_view(view);
+  host_view() = value;
+  Kokkos::deep_copy(view, host_view);
+  symbol_map[name] = const_single_view_type{view};
+}
+
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::set(std::string const& name, const_view_type const& value) {
   symbol_map[name] = value;
 }
 
-template <typename ViewType>
-void Eval<ViewType>::set(std::string const& name, read_view_type const& value) {
-  symbol_map[name] = value;
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::make_constant(Teuchos::any& result, double value) {
+  single_view_type view;
+  auto host_view = Kokkos::create_mirror_view(view);
+  host_view() = value;
+  Kokkos::deep_copy(view, host_view);
+  result = const_single_view_type{view};
 }
 
-template <typename ViewType>
-void Eval<ViewType>::make_constant(Teuchos::any& result, double value) {
-  result = typename ViewType::value_type{value};
-}
-
-template <typename ViewType>
-void Eval<ViewType>::inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) {
-  if (arg.type() == typeid(bool)) {
-    is_view = false;
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::inspect_arg(Teuchos::any const& arg, bool& is_many, bool& is_bool) {
+  if (arg.type() == typeid(const_single_bool_view_type)) {
+    is_many = false;
     is_bool = true;
-  } else if (arg.type() == typeid(typename ViewType::value_type)) {
-    is_view = false;
+  } else if (arg.type() == typeid(const_single_view_type)) {
+    is_many = false;
     is_bool = false;
-  } else if (arg.type() == typeid(typename ReadViewType<ViewType>::type)) {
-    is_view = true;
+  } else if (arg.type() == typeid(const_view_type)) {
+    is_many = true;
     is_bool = false;
-  } else if (arg.type() == typeid(typename ReadBoolViewType<ViewType>::type)) {
-    is_view = true;
+  } else if (arg.type() == typeid(const_bool_view_type)) {
+    is_many = true;
     is_bool = true;
   } else {
     TEUCHOS_TEST_FOR_EXCEPTION(true, Teuchos::ParserFail,
@@ -438,25 +402,25 @@ void Eval<ViewType>::inspect_arg(Teuchos::any const& arg, bool& is_view, bool& i
   }
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_single_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_single_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_view_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_many_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::view_single_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::many_single_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::view_view_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::many_many_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
-  using Single = typename ViewType::value_type;
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+  using Single = const_single_view_type;
   switch (code) {
     case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , Single, Single>("single||single", result, left, right); break;
     case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, Single, Single>("single&&single", result, left, right); break;
@@ -473,10 +437,10 @@ void Eval<ViewType>::single_single_binary_op(BinaryOpCode code, Teuchos::any& re
   }
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
-  using Single = typename ViewType::value_type;
-  using View = read_view_type;
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+  using Single = const_single_view_type;
+  using View = const_view_type;
   switch (code) {
     case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , Single, View>("single||view", result, left, right); break;
     case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, Single, View>("single&&view", result, left, right); break;
@@ -493,32 +457,32 @@ void Eval<ViewType>::single_view_binary_op(BinaryOpCode code, Teuchos::any& resu
   }
 }
 
-template <typename ViewType>
-void Eval<ViewType>::view_single_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::many_single_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::view_view_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_single_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_single_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_view_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_many_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::view_view_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::many_many_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::view_neg_op(Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::many_neg_op(Teuchos::any&, Teuchos::any&) {
 }
 
-template <typename ViewType>
-void Eval<ViewType>::single_neg_op(Teuchos::any&, Teuchos::any&) {
+template <typename DT, typename ... VP>
+void Eval<DT, VP ...>::single_neg_op(Teuchos::any&, Teuchos::any&) {
 }
 
 }} // end namespace panzer::Expr
