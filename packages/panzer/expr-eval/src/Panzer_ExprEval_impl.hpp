@@ -130,7 +130,7 @@ struct ScalarSub {
   }
 };
 
-struct ScalarProd {
+struct ScalarMul {
   template <typename T>
   static KOKKOS_FORCEINLINE_FUNCTION
   T apply(T const& left, T const& right) {
@@ -442,18 +442,18 @@ template <typename ViewType>
 void Eval<ViewType>::single_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
   using Single = typename ViewType::value_type;
   switch (code) {
-    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, Single>("single+single", result, left, right); break;
-    case BinaryOpCode::OR:
-    case BinaryOpCode::AND:
-    case BinaryOpCode::LT:
-    case BinaryOpCode::GT:
-    case BinaryOpCode::GEQ:
-    case BinaryOpCode::LEQ:
-    case BinaryOpCode::EQ:
-    case BinaryOpCode::MUL:
-    case BinaryOpCode::DIV:
-    case BinaryOpCode::SUB:
-    case BinaryOpCode::POW:
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , Single, Single>("single||single", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, Single, Single>("single&&single", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Single, Single>("single< single", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Single, Single>("single> single", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Single, Single>("single>=single", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Single, Single>("single<=single", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Single, Single>("single==single", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Single, Single>("single* single", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Single, Single>("single/ single", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, Single>("single+ single", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Single, Single>("single- single", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Single, Single>("single^ single", result, left, right); break;
       TEUCHOS_TEST_FOR_EXCEPTION(true, Teuchos::ParserFail, "not yet implemented");
   }
 }
