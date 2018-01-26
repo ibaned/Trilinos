@@ -276,6 +276,13 @@ template <typename T, size_t IterationRank, size_t TRank = T::Rank>
 struct Allocator;
 
 template <typename DT, typename ... VP>
+struct Allocator<Kokkos::View<DT, VP ...>, 0, 0> {
+  static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view) {
+    view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name)};
+  }
+};
+
+template <typename DT, typename ... VP>
 struct Allocator<Kokkos::View<DT, VP ...>, 1, 0> {
   static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view, size_t n0) {
     view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name)};
@@ -309,6 +316,7 @@ struct BinaryFunctor<Op, Left, Right, 0> {
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
+    Allocator<Result, 0>::allocate(name, result_);
     result_() = Op::apply(left_(), right_());
     result = result_;
   }
@@ -352,7 +360,7 @@ Eval<DT, VP ...>::Eval()
 
 template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::set(std::string const& name, bool value) {
-  single_bool_view_type view;
+  single_bool_view_type view{Kokkos::ViewAllocateWithoutInitializing{name}};
   auto host_view = Kokkos::create_mirror_view(view);
   host_view() = value;
   Kokkos::deep_copy(view, host_view);
@@ -361,7 +369,7 @@ void Eval<DT, VP ...>::set(std::string const& name, bool value) {
 
 template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::set(std::string const& name, scalar_type const& value) {
-  single_view_type view;
+  single_view_type view{Kokkos::ViewAllocateWithoutInitializing{name}};
   auto host_view = Kokkos::create_mirror_view(view);
   host_view() = value;
   Kokkos::deep_copy(view, host_view);
@@ -375,7 +383,7 @@ void Eval<DT, VP ...>::set(std::string const& name, const_view_type const& value
 
 template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::make_constant(Teuchos::any& result, double value) {
-  single_view_type view;
+  single_view_type view{Kokkos::ViewAllocateWithoutInitializing{"constant"}};
   auto host_view = Kokkos::create_mirror_view(view);
   host_view() = value;
   Kokkos::deep_copy(view, host_view);
