@@ -185,4 +185,99 @@ virtual void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>
   }
 }
 
+void Eval::ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+  bool cond_is_view;
+  bool cond_is_bool;
+  this->inspect_arg(cond, cond_is_view, cond_is_bool);
+  TEUCHOS_TEST_FOR_EXCEPTION(!cond_is_bool, Teuchos::ParserFail,
+      "Ternary condition is not of boolean type!");
+  bool is_view[2];
+  bool is_bool[2];
+  this->inspect_arg(left, is_view[0], is_bool[0]);
+  this->inspect_arg(right, is_view[1], is_bool[1]);
+  TEUCHOS_TEST_FOR_EXCEPTION(is_bool[0], Teuchos::ParserFail,
+      "Boolean values in ternary operator not yet supported");
+  if (!cond_is_view) {
+    bool cond_value = Teuchos::any_cast<bool>(cond);
+    if (cond_value) {
+      swap(result, left);
+    } else {
+      swap(result, right);
+    }
+  } else {
+    if (!is_view[0] && !is_view[1]) {
+      this->single_single_ternary_op(result, cond, left, right);
+    } else if (!is_view[0] && is_view[1]) {
+      this->single_view_ternary_op(result, cond, left, right);
+    } else if (is_view[0] && !is_view[1]) {
+      this->view_single_ternary_op(result, cond, left, right);
+    } else if (is_view[0] && is_view[1]) {
+      this->view_view_ternary_op(result, cond, left, right);
+    }
+  }
+}
+
+static const char* get_op_syntax(BinaryOpCode code) {
+  switch (code) {
+    case OR: return "||";
+    case AND: return "&&";
+    case GT: return ">";
+    case LT: return "<";
+    case GEQ: return ">=";
+    case LEQ: return "<=";
+    case EQ: return "==";
+    case ADD: return "+";
+    case SUB: return "-";
+    case PROD: return "*";
+    case DIV: return "/";
+  }
+}
+
+void Eval::binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+  bool is_view[2];
+  bool is_bool[2];
+  this->inspect_arg(left, is_view[0], is_bool[0]);
+  this->inspect_arg(right, is_view[1], is_bool[1]);
+  bool expect_booleans = (code == AND || code == OR);
+  TEUCHOS_TEST_FOR_EXCEPTION(is_bool[0] != expect_booleans, Teuchos::ParserFail,
+      "Left argument to '" << get_op_syntax(code) << "' is " << (is_bool[0] ? "" : "not") << " boolean!");
+  TEUCHOS_TEST_FOR_EXCEPTION(is_bool[1] != expect_booleans, Teuchos::ParserFail,
+      "Right argument to '" << get_op_syntax(code) << "' is " << (is_bool[0] ? "" : "not") << " boolean!");
+  if (expect_booleans) {
+    if (!is_view[0] && !is_view[1]) {
+      this->single_single_binary_op_bool(code, result, left, right);
+    } else if (!is_view[0] && is_view[1]) {
+      this->single_view_binary_op_bool(code, result, left, right);
+    } else if (is_view[0] && !is_view[1]) {
+      /* throwing in the assumption that all boolean binary operators are commutative */
+      this->single_view_binary_op_bool(code, result, left, right);
+    } else if (is_view[0] && is_view[1]) {
+      this->view_view_binary_op_bool(code, result, left, right);
+    }
+  } else {
+    if (!is_view[0] && !is_view[1]) {
+      this->single_single_binary_op(code, result, left, right);
+    } else if (!is_view[0] && is_view[1]) {
+      this->single_view_binary_op(code, result, left, right);
+    } else if (is_view[0] && !is_view[1]) {
+      this->view_single_binary_op(code, result, left, right);
+    } else if (is_view[0] && is_view[1]) {
+      this->view_view_binary_op(code, result, left, right);
+    }
+  }
+}
+
+void neg_op(Teuchos::any& result, Teuchos::any& right) {
+  bool is_view;
+  bool is_bool;
+  this->inspect_arg(left, is_view, is_bool);
+  TEUCHOS_TEST_FOR_EXCEPTION(is_bool, Teuchos::ParserFail,
+      "Can't negate a boolean");
+  if (is_view) {
+    this->view_neg_op(result, right);
+  } else {
+    this->single_neg_op(result, right);
+  }
+}
+
 } // end namespace panzer
