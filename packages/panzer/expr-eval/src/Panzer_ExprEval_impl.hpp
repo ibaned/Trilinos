@@ -163,42 +163,6 @@ struct ScalarNeg {
   }
 };
 
-template <typename DataType, typename NewScalarType>
-struct RebindDataType {
-  using type = NewScalarType;
-};
-
-template <typename NestedDataType, typename NewScalarType>
-struct RebindDataType<NestedDataType*, NewScalarType> {
-  using type = typename RebindDataType<NestedDataType, NewScalarType>::type *;
-};
-
-template <typename NestedDataType, typename NewScalarType>
-struct RebindDataType<NestedDataType[], NewScalarType> {
-  using type = typename RebindDataType<NestedDataType, NewScalarType>::type [];
-};
-
-template <typename NestedDataType, typename NewScalarType, size_t N>
-struct RebindDataType<NestedDataType[N], NewScalarType> {
-  using type = typename RebindDataType<NestedDataType, NewScalarType>::type [N];
-};
-
-template <typename ViewType, typename NewScalarType>
-struct RebindViewType;
-
-template <typename DT, typename NewScalarType, typename ... VP>
-struct RebindViewType<Kokkos::View<DT, VP ...>, NewScalarType> {
-  using type = Kokkos::View<typename RebindDataType<DT, NewScalarType>::type, VP ...>;
-};
-
-template <typename ViewType>
-struct ReadViewType;
-
-template <typename DT, typename ... VP>
-struct ReadViewType<Kokkos::View<DT, VP ...>> {
-  using type = Kokkos::View<typename RebindDataType<DT, typename Kokkos::View<DT, VP ...>::const_value_type>::type, VP ...>;
-};
-
 template <typename ViewType>
 struct WriteViewType;
 
@@ -421,6 +385,16 @@ template <typename ViewType>
 Eval<ViewType>::Eval()
   : EvalBase() 
 {
+}
+
+template <typename ViewType>
+void Eval<ViewType>::set(std::string const& name, scalar_type const& value) {
+  symbol_map[name] = value;
+}
+
+template <typename ViewType>
+void Eval<ViewType>::set(std::string const& name, read_view_type const& value) {
+  symbol_map[name] = value;
 }
 
 template <typename ViewType>

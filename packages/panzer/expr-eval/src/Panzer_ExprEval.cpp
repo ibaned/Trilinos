@@ -50,8 +50,19 @@ namespace Teuchos
 {
 
 /* get around really really really bad Teuchos::any design */
+
 std::ostream& operator<<(std::ostream& s, std::vector<Teuchos::any> const&) {
   return s;
+}
+
+template <typename DT, typename ... VP>
+std::ostream& operator<<(std::ostream& s, Kokkos::View<DT, VP ...> const&) {
+  return s;
+}
+
+template <typename DT, typename ... VP>
+bool operator==(panzer::Expr::EvalBase::Function const& a, panzer::Expr::EvalBase::Function const& b) {
+  return false;
 }
 
 }
@@ -63,6 +74,14 @@ namespace Expr
 
 EvalBase::EvalBase()
   : Teuchos::Reader(Teuchos::MathExpr::ask_reader_tables()) {
+}
+
+void EvalBase::set(std::string const& name, bool value) {
+  symbol_map[name] = value;
+}
+
+void EvalBase::set(std::string const& name, Function const& value) {
+  symbol_map[name] = value;
 }
 
 void EvalBase::at_shift(Teuchos::any& result_any, int token, std::string& text) {

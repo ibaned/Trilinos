@@ -44,6 +44,8 @@
 #define PANZER_EXPR_EVAL_HPP
 
 #include <functional>
+#include <map>
+#include <type_traits>
 
 #include <Teuchos_Reader.hpp>
 
@@ -72,17 +74,24 @@ enum class BinaryOpCode {
 class EvalBase : public Teuchos::Reader {
  public:
   EvalBase();
+  void set(std::string const& name, bool value);
+  using Function = std::function<void(Teuchos::any&, std::vector<Teuchos::any>& rhs)>;
+  void set(std::string const& name, Function const& value);
+  template <typename T>
+  T const& get(std::string const& name) const {
+    auto it = symbol_map.find(name);
+    TEUCHOS_TEST_FOR_EXCEPTION(it == symbol_map.end(), std::logic_error,
+        "EvalBase::get: \"" << name << "\" not found");
+    return Teuchos::any_ref_cast<T>(it->second);
+  }
  protected:
+  std::map<std::string, Teuchos::any> symbol_map;
+
   void at_shift(Teuchos::any& result, int token, std::string& text) override;
   void at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::any>& rhs) override;
- public:
-  using Function = std::function<void(Teuchos::any&, std::vector<Teuchos::any>& rhs)>;
-  std::map<std::string, Teuchos::any> symbol_map;
- protected:
   void ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right);
   void binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
   void neg_op(Teuchos::any& result, Teuchos::any& right);
- protected:
   virtual void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) = 0;
   virtual void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
@@ -99,10 +108,50 @@ class EvalBase : public Teuchos::Reader {
   virtual void single_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
 };
 
+template <typename DataType, typename NewScalarType>
+struct RebindDataType {
+  using type = NewScalarType;
+};
+
+template <typename NestedDataType, typename NewScalarType>
+struct RebindDataType<NestedDataType*, NewScalarType> {
+  using type = typename RebindDataType<NestedDataType, NewScalarType>::type *;
+};
+
+template <typename NestedDataType, typename NewScalarType>
+struct RebindDataType<NestedDataType[], NewScalarType> {
+  using type = typename RebindDataType<NestedDataType, NewScalarType>::type [];
+};
+
+template <typename NestedDataType, typename NewScalarType, size_t N>
+struct RebindDataType<NestedDataType[N], NewScalarType> {
+  using type = typename RebindDataType<NestedDataType, NewScalarType>::type [N];
+};
+
+template <typename ViewType, typename NewScalarType>
+struct RebindViewType;
+
+template <typename DT, typename NewScalarType, typename ... VP>
+struct RebindViewType<Kokkos::View<DT, VP ...>, NewScalarType> {
+  using type = Kokkos::View<typename RebindDataType<DT, NewScalarType>::type, VP ...>;
+};
+
+template <typename ViewType>
+struct ReadViewType;
+
+template <typename DT, typename ... VP>
+struct ReadViewType<Kokkos::View<DT, VP ...>> {
+  using type = Kokkos::View<typename RebindDataType<DT, typename Kokkos::View<DT, VP ...>::const_value_type>::type, VP ...>;
+};
+
 template <typename ViewType>
 class Eval : public EvalBase {
  public:
+  using scalar_type = typename ViewType::value_type;
+  using read_view_type = typename ReadViewType<ViewType>::type;
   Eval();
+  void set(std::string const& name, scalar_type const& value);
+  void set(std::string const& name, read_view_type const& value);
  protected:
   void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) override;
   void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
