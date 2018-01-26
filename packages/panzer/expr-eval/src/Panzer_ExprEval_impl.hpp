@@ -335,6 +335,21 @@ struct ResultType<Kokkos::View<DT, VP...>, Kokkos::View<DT, VP...>> {
   using type = typename WriteViewType<Kokkos::View<DT, VP...>>::type;
 };
 
+template <typename T, size_t Rank>
+struct Allocator;
+
+template <typename T>
+struct Allocator<T, 1> {
+  static void allocate(std::string const& name, T&, size_t) {}
+};
+
+template <typename DT, typename ... VP>
+struct Allocator<Kokkos::View<DT, VP ...>, 1> {
+  static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view, size_t n0) {
+    view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name), n0};
+  }
+};
+
 template <typename Op, typename Left, typename Right, size_t Rank = RankForAll<Left, Right>::value>
 struct BinaryFunctor;
 
@@ -376,6 +391,7 @@ struct BinaryFunctor<Op, Left, Right, 1> {
       std::max(
           ExtentsFor<Left>::extent(0),
           ExtentsFor<Right>::extent(0));
+    Allocator<Result, 1>::allocate(name, result_, extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
     result = result_;
   }
