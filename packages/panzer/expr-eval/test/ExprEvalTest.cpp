@@ -60,6 +60,9 @@ TEUCHOS_UNIT_TEST(ExprEval, test_1_plus_1)
   eval.read_string(result, "b=4;\na+b", "a plus b");
   x = Teuchos::any_cast<double>(result);
   TEUCHOS_ASSERT(x == 9.0);
+  eval.read_string(result, "a-b", "a minus b");
+  x = Teuchos::any_cast<double>(result);
+  TEUCHOS_ASSERT(x == 1.0);
 }
 
 }
