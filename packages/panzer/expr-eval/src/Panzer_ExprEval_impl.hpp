@@ -198,7 +198,7 @@ struct Indexer<Indexed, 1> {
 };
 
 template <typename DT, typename ... VP>
-struct Indexer<Kokkos::View<DT, VP...>, 1> {
+struct Indexer<Kokkos::View<DT, VP...> const, 1> {
   template <typename Integral>
   static KOKKOS_FORCEINLINE_FUNCTION
   typename Kokkos::View<DT, VP...>::reference_type
@@ -381,16 +381,16 @@ struct BinaryFunctor<Op, Left, Right, 1> {
   void operator()(typename execution_space::size_type i) const {
     Indexer<Result, 1>::index(result_, i) =
       Op::apply(
-          Indexer<Left, 1>::index(left_, i),
-          Indexer<Right, 1>::index(right_, i));
+          Indexer<Left const, 1>::index(left_, i),
+          Indexer<Right const, 1>::index(right_, i));
   }
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
     auto extent_0 =
       std::max(
-          ExtentsFor<Left>::extent(0),
-          ExtentsFor<Right>::extent(0));
+          ExtentsFor<Left>::extent(left_, 0),
+          ExtentsFor<Right>::extent(right_, 0));
     Allocator<Result, 1>::allocate(name, result_, extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
     result = result_;
@@ -470,12 +470,27 @@ void Eval<ViewType>::single_single_binary_op(BinaryOpCode code, Teuchos::any& re
     case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, Single>("single+ single", result, left, right); break;
     case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Single, Single>("single- single", result, left, right); break;
     case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Single, Single>("single^ single", result, left, right); break;
-      TEUCHOS_TEST_FOR_EXCEPTION(true, Teuchos::ParserFail, "not yet implemented");
   }
 }
 
 template <typename ViewType>
-void Eval<ViewType>::single_view_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<ViewType>::single_view_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+  using Single = typename ViewType::value_type;
+  using View = read_view_type;
+  switch (code) {
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , Single, View>("single||view", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, Single, View>("single&&view", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Single, View>("single< view", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Single, View>("single> view", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Single, View>("single>=view", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Single, View>("single<=view", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Single, View>("single==view", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Single, View>("single* view", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Single, View>("single/ view", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, View>("single+ view", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Single, View>("single- view", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Single, View>("single^ view", result, left, right); break;
+  }
 }
 
 template <typename ViewType>
