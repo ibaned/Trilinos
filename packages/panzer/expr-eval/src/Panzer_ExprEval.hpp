@@ -92,6 +92,7 @@ class EvalBase : public Teuchos::Reader {
   void ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right);
   void binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
   void neg_op(Teuchos::any& result, Teuchos::any& right);
+  virtual void make_constant(Teuchos::any& result, double value) = 0;
   virtual void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) = 0;
   virtual void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
@@ -153,6 +154,7 @@ class Eval : public EvalBase {
   void set(std::string const& name, scalar_type const& value);
   void set(std::string const& name, read_view_type const& value);
  protected:
+  void make_constant(Teuchos::any& result, double value) override;
   void inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) override;
   void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
   void single_view_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;

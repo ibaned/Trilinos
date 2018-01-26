@@ -93,7 +93,7 @@ void EvalBase::at_shift(Teuchos::any& result_any, int token, std::string& text) 
       return;
     }
     case Teuchos::MathExpr::TOK_CONST: {
-      result_any = std::atof(text.c_str());
+      this->make_constant(result_any, std::atof(text.c_str()));
       return;
     }
   }

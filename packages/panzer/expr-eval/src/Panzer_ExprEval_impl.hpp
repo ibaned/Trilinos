@@ -398,6 +398,11 @@ void Eval<ViewType>::set(std::string const& name, read_view_type const& value) {
 }
 
 template <typename ViewType>
+void Eval<ViewType>::make_constant(Teuchos::any& result, double value) {
+  result = typename ViewType::value_type{value};
+}
+
+template <typename ViewType>
 void Eval<ViewType>::inspect_arg(Teuchos::any const& arg, bool& is_view, bool& is_bool) {
   if (arg.type() == typeid(bool)) {
     is_view = false;
