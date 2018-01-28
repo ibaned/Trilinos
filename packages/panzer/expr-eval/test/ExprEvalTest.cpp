@@ -89,6 +89,11 @@ TEUCHOS_UNIT_TEST(ExprEval, test_1_plus_1)
   eval.read_string(result, "0.5 < 1.0 ? 0.5 : 1.0", "0.5 < 1.0 ? 0.5 : 1.0");
   x = Teuchos::any_cast<Kokkos::View<double const>>(result);
   TEUCHOS_ASSERT(x() == 0.5);
+  eval.read_string(result, "y < 1.5 ? 0.0 : 1.0", "y < 1.5 ? 0.0 : 1.0");
+  z = Teuchos::any_cast<Kokkos::View<double const*>>(result);
+  TEUCHOS_ASSERT(z(0) == 0.0);
+  TEUCHOS_ASSERT(z(1) == 1.0);
+  TEUCHOS_ASSERT(z(2) == 1.0);
 }
 
 }
