@@ -296,7 +296,7 @@ struct Allocator<Kokkos::View<DT, VP ...>, 1, 1> {
   }
 };
 
-template <typename Op, typename Left, typename Right, size_t Rank = RankForAll<Left, Right>::value>
+template <typename Op, typename Result, typename Left, typename Right, size_t Rank = Result::rank>
 struct BinaryFunctor;
 
 template <typename A, typename B>
@@ -319,36 +319,34 @@ struct TernaryResultType {
   using type = typename RebindViewType<biggest_type, typename A::non_const_value_type>::type;
 };
 
-template <typename Op, typename Left, typename Right>
-struct BinaryFunctor<Op, Left, Right, 0> {
-  using Result = typename ResultType<Left, Right>::type;
-  using ConstResult = typename ResultType<Left, Right>::const_type;
-  Result result_;
+template <typename Op, typename Result, typename Left, typename Right>
+struct BinaryFunctor<Op, Result, Left, Right, 0> {
+  using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
+  NonConstResult result_;
   Left   left_;
   Right  right_;
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
-    Allocator<Result, 0>::allocate(name, result_);
+    Allocator<NonConstResult, 0>::allocate(name, result_);
     result_() = Op::apply(left_(), right_());
-    result = ConstResult{result_};
+    result = Result{result_};
   }
 };
 
-template <typename Op, typename Left, typename Right>
-struct BinaryFunctor<Op, Left, Right, 1> {
-  using Result = typename ResultType<Left, Right>::type;
-  using ConstResult = typename ResultType<Left, Right>::const_type;
+template <typename Op, typename Result, typename Left, typename Right>
+struct BinaryFunctor<Op, Result, Left, Right, 1> {
+  using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
   using execution_space =
     typename SetDefaultExecSpace<
       typename ExecSpaceForAll<Left, Right>::type,
       Kokkos::Serial>::type;
-  Result result_;
+  NonConstResult result_;
   Left   left_;
   Right  right_;
   KOKKOS_INLINE_FUNCTION
   void operator()(typename execution_space::size_type i) const {
-    Indexer<Result, 1>::index(result_, i) =
+    Indexer<NonConstResult, 1>::index(result_, i) =
       Op::apply(
           Indexer<Left, 1>::index(left_, i),
           Indexer<Right, 1>::index(right_, i));
@@ -360,9 +358,9 @@ struct BinaryFunctor<Op, Left, Right, 1> {
       std::max(
           ExtentsFor<Left>::extent(left_, 0),
           ExtentsFor<Right>::extent(right_, 0));
-    Allocator<Result, 1>::allocate(name, result_, extent_0);
+    Allocator<NonConstResult, 1>::allocate(name, result_, extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
-    result = ConstResult{result_};
+    result = Result{result_};
   }
 };
 
@@ -502,18 +500,18 @@ void Eval<DT, VP ...>::single_single_binary_op(BinaryOpCode code, Teuchos::any& 
   using SingleBool = const_single_bool_view_type;
   using Single = const_single_view_type;
   switch (code) {
-    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , SingleBool, SingleBool>("single||single", result, left, right); break;
-    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, SingleBool, SingleBool>("single&&single", result, left, right); break;
-    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Single, Single>("single< single", result, left, right); break;
-    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Single, Single>("single> single", result, left, right); break;
-    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Single, Single>("single>=single", result, left, right); break;
-    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Single, Single>("single<=single", result, left, right); break;
-    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Single, Single>("single==single", result, left, right); break;
-    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Single, Single>("single* single", result, left, right); break;
-    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Single, Single>("single/ single", result, left, right); break;
-    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, Single>("single+ single", result, left, right); break;
-    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Single, Single>("single- single", result, left, right); break;
-    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Single, Single>("single^ single", result, left, right); break;
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , SingleBool, SingleBool, SingleBool>("single||single", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, SingleBool, SingleBool, SingleBool>("single&&single", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , SingleBool, Single, Single>("single< single", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , SingleBool, Single, Single>("single> single", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, SingleBool, Single, Single>("single>=single", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, SingleBool, Single, Single>("single<=single", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , SingleBool, Single, Single>("single==single", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Single, Single, Single>("single* single", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Single, Single, Single>("single/ single", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, Single, Single>("single+ single", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Single, Single, Single>("single- single", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Single, Single, Single>("single^ single", result, left, right); break;
   }
 }
 
@@ -524,18 +522,18 @@ void Eval<DT, VP ...>::single_many_binary_op(BinaryOpCode code, Teuchos::any& re
   using Many = const_view_type;
   using ManyBool = const_bool_view_type;
   switch (code) {
-    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , SingleBool, ManyBool>("single||many", result, left, right); break;
-    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, SingleBool, ManyBool>("single&&many", result, left, right); break;
-    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Single, Many>("single< many", result, left, right); break;
-    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Single, Many>("single> many", result, left, right); break;
-    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Single, Many>("single>=many", result, left, right); break;
-    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Single, Many>("single<=many", result, left, right); break;
-    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Single, Many>("single==many", result, left, right); break;
-    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Single, Many>("single* many", result, left, right); break;
-    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Single, Many>("single/ many", result, left, right); break;
-    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Single, Many>("single+ many", result, left, right); break;
-    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Single, Many>("single- many", result, left, right); break;
-    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Single, Many>("single^ many", result, left, right); break;
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, SingleBool, ManyBool>("single||many", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, SingleBool, ManyBool>("single&&many", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , ManyBool, Single, Many>("single< many", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , ManyBool, Single, Many>("single> many", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, ManyBool, Single, Many>("single>=many", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, ManyBool, Single, Many>("single<=many", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , ManyBool, Single, Many>("single==many", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Single, Many>("single* many", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Single, Many>("single/ many", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Single, Many>("single+ many", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Single, Many>("single- many", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Single, Many>("single^ many", result, left, right); break;
   }
 }
 
@@ -546,18 +544,18 @@ void Eval<DT, VP ...>::many_single_binary_op(BinaryOpCode code, Teuchos::any& re
   using Many = const_view_type;
   using ManyBool = const_bool_view_type;
   switch (code) {
-    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, SingleBool>("many||single", result, left, right); break;
-    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, SingleBool>("many&&single", result, left, right); break;
-    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Many, Single>("many< single", result, left, right); break;
-    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Many, Single>("many> single", result, left, right); break;
-    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Many, Single>("many>=single", result, left, right); break;
-    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Many, Single>("many<=single", result, left, right); break;
-    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Many, Single>("many==single", result, left, right); break;
-    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Single>("many* single", result, left, right); break;
-    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Single>("many/ single", result, left, right); break;
-    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Single>("many+ single", result, left, right); break;
-    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Single>("many- single", result, left, right); break;
-    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Single>("many^ single", result, left, right); break;
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, ManyBool, SingleBool>("many||single", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, ManyBool, SingleBool>("many&&single", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , ManyBool, Many, Single>("many< single", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , ManyBool, Many, Single>("many> single", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, ManyBool, Many, Single>("many>=single", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, ManyBool, Many, Single>("many<=single", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , ManyBool, Many, Single>("many==single", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Many, Single>("many* single", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Many, Single>("many/ single", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Many, Single>("many+ single", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Many, Single>("many- single", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Many, Single>("many^ single", result, left, right); break;
   }
 }
 
@@ -566,18 +564,18 @@ void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any& resu
   using Many = const_view_type;
   using ManyBool = const_bool_view_type;
   switch (code) {
-    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, ManyBool>("many||many", result, left, right); break;
-    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, ManyBool>("many&&many", result, left, right); break;
-    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Many, Many>("many< many", result, left, right); break;
-    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Many, Many>("many> many", result, left, right); break;
-    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Many, Many>("many>=many", result, left, right); break;
-    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Many, Many>("many<=many", result, left, right); break;
-    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Many, Many>("many==many", result, left, right); break;
-    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Many>("many* many", result, left, right); break;
-    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Many>("many/ many", result, left, right); break;
-    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Many>("many+ many", result, left, right); break;
-    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Many>("many- many", result, left, right); break;
-    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Many>("many^ many", result, left, right); break;
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, ManyBool, ManyBool>("many||many", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, ManyBool, ManyBool>("many&&many", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , ManyBool, Many, Many>("many< many", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , ManyBool, Many, Many>("many> many", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, ManyBool, Many, Many>("many>=many", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, ManyBool, Many, Many>("many<=many", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , ManyBool, Many, Many>("many==many", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Many, Many>("many* many", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Many, Many>("many/ many", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Many, Many>("many+ many", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Many, Many>("many- many", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Many, Many>("many^ many", result, left, right); break;
   }
 }
 

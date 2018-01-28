@@ -225,8 +225,8 @@ void EvalBase::ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any
   TEUCHOS_TEST_FOR_EXCEPTION(is_bool[0], Teuchos::ParserFail,
       "Boolean values in ternary operator not yet supported");
   if (!cond_is_many) {
-    bool cond_value = Teuchos::any_cast<bool>(cond);
-    if (cond_value) {
+    auto cond_value = Teuchos::any_cast<Kokkos::View<bool const>>(cond);
+    if (cond_value()) {
       swap(result, left);
     } else {
       swap(result, right);
