@@ -308,6 +308,17 @@ struct ResultType {
   using type = typename RebindViewType<biggest_type, typename biggest_type::non_const_value_type>::type;
 };
 
+template <typename C, typename A, typename B>
+struct TernaryResultType {
+  static constexpr size_t a_rank = A::rank;
+  static constexpr size_t b_rank = B::rank;
+  static constexpr size_t c_rank = C::rank;
+  using biggest_ab_type = typename std::conditional<(b_rank > a_rank), B, A>::type;
+  using biggest_type = typename std::conditional<(c_rank > biggest_ab_type::rank), C, biggest_ab_type>::type;
+  using const_type = typename RebindViewType<biggest_type, typename A::const_value_type>::type;
+  using type = typename RebindViewType<biggest_type, typename A::non_const_value_type>::type;
+};
+
 template <typename Op, typename Left, typename Right>
 struct BinaryFunctor<Op, Left, Right, 0> {
   using Result = typename ResultType<Left, Right>::type;
@@ -349,6 +360,44 @@ struct BinaryFunctor<Op, Left, Right, 1> {
       std::max(
           ExtentsFor<Left>::extent(left_, 0),
           ExtentsFor<Right>::extent(right_, 0));
+    Allocator<Result, 1>::allocate(name, result_, extent_0);
+    Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
+    result = ConstResult{result_};
+  }
+};
+
+template <typename Cond, typename Left, typename Right, size_t Rank = RankForAll<Cond, Left, Right>::value>
+struct TernaryFunctor;
+
+template <typename Cond, typename Left, typename Right>
+struct TernaryFunctor<Cond, Left, Right, 1> {
+  using Result = typename TernaryResultType<Cond, Left, Right>::type;
+  using ConstResult = typename TernaryResultType<Cond, Left, Right>::const_type;
+  using execution_space =
+    typename SetDefaultExecSpace<
+      typename ExecSpaceForAll<Cond, Left, Right>::type,
+      Kokkos::Serial>::type;
+  Result result_;
+  Cond   cond_;
+  Left   left_;
+  Right  right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type i) const {
+    Indexer<Result, 1>::index(result_, i) =
+          Indexer<Cond, 1>::index(cond_, i) ?
+          Indexer<Left, 1>::index(left_, i) :
+          Indexer<Right, 1>::index(right_, i);
+  }
+  TernaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+    cond_ = Teuchos::any_cast<Cond>(cond);
+    left_ = Teuchos::any_cast<Left>(left);
+    right_ = Teuchos::any_cast<Right>(right);
+    auto extent_0 =
+      std::max(
+          ExtentsFor<Cond>::extent(cond_, 0),
+      std::max(
+          ExtentsFor<Left>::extent(left_, 0),
+          ExtentsFor<Right>::extent(right_, 0)));
     Allocator<Result, 1>::allocate(name, result_, extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
     result = ConstResult{result_};
@@ -419,19 +468,33 @@ void Eval<DT, VP ...>::inspect_arg(Teuchos::any const& arg, bool& is_many, bool&
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::single_single_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+  using ManyBool = const_bool_view_type;
+  using Single = const_single_view_type;
+  TernaryFunctor<ManyBool, Single, Single>("many ? single : single", result, cond, left, right);
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::single_many_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::single_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+  using ManyBool = const_bool_view_type;
+  using Single = const_single_view_type;
+  using Many = const_view_type;
+  TernaryFunctor<ManyBool, Single, Many>("many ? single : many", result, cond, left, right);
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::many_single_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::many_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+  using ManyBool = const_bool_view_type;
+  using Single = const_single_view_type;
+  using Many = const_view_type;
+  TernaryFunctor<ManyBool, Many, Single>("many ? many : single", result, cond, left, right);
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::many_many_ternary_op(Teuchos::any&, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::many_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+  using ManyBool = const_bool_view_type;
+  using Many = const_view_type;
+  TernaryFunctor<ManyBool, Many, Many>("many ? many : many", result, cond, left, right);
 }
 
 template <typename DT, typename ... VP>
