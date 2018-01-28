@@ -76,6 +76,11 @@ TEUCHOS_UNIT_TEST(ExprEval, test_1_plus_1)
   TEUCHOS_ASSERT(z(0) == 3.0);
   TEUCHOS_ASSERT(z(1) == 4.0);
   TEUCHOS_ASSERT(z(2) == 5.0);
+  eval.read_string(result, "y * a", "y * a");
+  z = Teuchos::any_cast<Kokkos::View<double const*>>(result);
+  TEUCHOS_ASSERT(z(0) == 5.0);
+  TEUCHOS_ASSERT(z(1) == 10.0);
+  TEUCHOS_ASSERT(z(2) == 15.0);
 }
 
 }

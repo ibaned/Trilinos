@@ -486,7 +486,25 @@ void Eval<DT, VP ...>::single_many_binary_op(BinaryOpCode code, Teuchos::any& re
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::many_single_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::many_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+  using Single = const_single_view_type;
+  using SingleBool = const_single_bool_view_type;
+  using Many = const_view_type;
+  using ManyBool = const_bool_view_type;
+  switch (code) {
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, SingleBool>("many||single", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, SingleBool>("many&&single", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Many, Single>("many< single", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Many, Single>("many> single", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Many, Single>("many>=single", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Many, Single>("many<=single", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Many, Single>("many==single", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Single>("many* single", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Single>("many/ single", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Single>("many+ single", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Single>("many- single", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Single>("many^ single", result, left, right); break;
+  }
 }
 
 template <typename DT, typename ... VP>
