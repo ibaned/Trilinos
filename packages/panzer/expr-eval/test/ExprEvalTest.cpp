@@ -51,18 +51,31 @@ TEUCHOS_UNIT_TEST(ExprEval, test_1_plus_1)
   Expr::Eval<double*> eval;
   Teuchos::any result;
   eval.read_string(result, "1+1", "one plus one");
-  Kokkos::View<double> x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  Kokkos::View<double const> x = Teuchos::any_cast<Kokkos::View<double const>>(result);
   TEUCHOS_ASSERT(x() == 2.0);
   eval.set("a", 5.0);
   eval.read_string(result, "a+a", "a plus a");
-  x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  x = Teuchos::any_cast<Kokkos::View<double const>>(result);
   TEUCHOS_ASSERT(x() == 10.0);
   eval.read_string(result, "b=4;\na+b", "a plus b");
-  x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  x = Teuchos::any_cast<Kokkos::View<double const>>(result);
   TEUCHOS_ASSERT(x() == 9.0);
   eval.read_string(result, "a-b", "a minus b");
-  x = Teuchos::any_cast<Kokkos::View<double>>(result);
+  x = Teuchos::any_cast<Kokkos::View<double const>>(result);
   TEUCHOS_ASSERT(x() == 1.0);
+  eval.read_string(result, "a^2 - b^2", "a^2 - b^2");
+  x = Teuchos::any_cast<Kokkos::View<double const>>(result);
+  TEUCHOS_ASSERT(x() == 9.0);
+  auto y = Kokkos::View<double*>{"y", 3};
+  y(0) = 1.0;
+  y(1) = 2.0;
+  y(2) = 3.0;
+  eval.set("y", y);
+  eval.read_string(result, "2 + y", "2 + y");
+  auto z = Teuchos::any_cast<Kokkos::View<double const*>>(result);
+  TEUCHOS_ASSERT(z(0) == 3.0);
+  TEUCHOS_ASSERT(z(1) == 4.0);
+  TEUCHOS_ASSERT(z(2) == 5.0);
 }
 
 }
