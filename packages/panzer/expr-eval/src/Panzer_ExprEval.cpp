@@ -272,27 +272,14 @@ void EvalBase::binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& 
       "Left argument to '" << get_op_syntax(code) << "' is " << (is_bool[0] ? "" : "not") << " boolean!");
   TEUCHOS_TEST_FOR_EXCEPTION(is_bool[1] != expect_booleans, Teuchos::ParserFail,
       "Right argument to '" << get_op_syntax(code) << "' is " << (is_bool[0] ? "" : "not") << " boolean!");
-  if (expect_booleans) {
-    if (!is_many[0] && !is_many[1]) {
-      this->single_single_binary_op_bool(code, result, left, right);
-    } else if (!is_many[0] && is_many[1]) {
-      this->single_many_binary_op_bool(code, result, left, right);
-    } else if (is_many[0] && !is_many[1]) {
-      /* throwing in the assumption that all boolean binary operators are commutative */
-      this->single_many_binary_op_bool(code, result, left, right);
-    } else if (is_many[0] && is_many[1]) {
-      this->many_many_binary_op_bool(code, result, left, right);
-    }
-  } else {
-    if (!is_many[0] && !is_many[1]) {
-      this->single_single_binary_op(code, result, left, right);
-    } else if (!is_many[0] && is_many[1]) {
-      this->single_many_binary_op(code, result, left, right);
-    } else if (is_many[0] && !is_many[1]) {
-      this->many_single_binary_op(code, result, left, right);
-    } else if (is_many[0] && is_many[1]) {
-      this->many_many_binary_op(code, result, left, right);
-    }
+  if (!is_many[0] && !is_many[1]) {
+    this->single_single_binary_op(code, result, left, right);
+  } else if (!is_many[0] && is_many[1]) {
+    this->single_many_binary_op(code, result, left, right);
+  } else if (is_many[0] && !is_many[1]) {
+    this->many_single_binary_op(code, result, left, right);
+  } else if (is_many[0] && is_many[1]) {
+    this->many_many_binary_op(code, result, left, right);
   }
 }
 

@@ -101,9 +101,6 @@ class EvalBase : public Teuchos::Reader {
   virtual void single_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void many_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void many_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void single_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
-  virtual void many_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void many_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
   virtual void single_neg_op(Teuchos::any& result, Teuchos::any& right) = 0;
 };
@@ -167,9 +164,6 @@ class Eval : public EvalBase {
   void single_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
   void many_single_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
   void many_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void single_single_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void single_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
-  void many_many_binary_op_bool(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) override;
   void many_neg_op(Teuchos::any& result, Teuchos::any& right) override;
   void single_neg_op(Teuchos::any& result, Teuchos::any& right) override;
 };

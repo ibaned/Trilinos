@@ -519,18 +519,6 @@ void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any& resu
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::single_single_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
-}
-
-template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::single_many_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
-}
-
-template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::many_many_binary_op_bool(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
-}
-
-template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::many_neg_op(Teuchos::any&, Teuchos::any&) {
 }
 
