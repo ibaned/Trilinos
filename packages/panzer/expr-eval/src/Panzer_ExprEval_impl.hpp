@@ -308,15 +308,6 @@ struct ResultType {
   using type = typename RebindViewType<biggest_type, typename biggest_type::non_const_value_type>::type;
 };
 
-template <typename A>
-struct ConstViewType;
-
-template <typename DT, typename ... VP>
-struct ConstViewType<Kokkos::View<DT, VP...>> {
-  using in_type = Kokkos::View<DT, VP...>;
-  using type = typename RebindViewType<in_type, typename in_type::const_value_type>::type;
-};
-
 template <typename Op, typename Left, typename Right>
 struct BinaryFunctor<Op, Left, Right, 0> {
   using Result = typename ResultType<Left, Right>::type;
@@ -508,7 +499,23 @@ void Eval<DT, VP ...>::many_single_binary_op(BinaryOpCode code, Teuchos::any& re
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any&, Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+  using Many = const_view_type;
+  using ManyBool = const_bool_view_type;
+  switch (code) {
+    case BinaryOpCode::OR:  BinaryFunctor<ScalarOr , ManyBool, ManyBool>("many||many", result, left, right); break;
+    case BinaryOpCode::AND: BinaryFunctor<ScalarAnd, ManyBool, ManyBool>("many&&many", result, left, right); break;
+    case BinaryOpCode::LT:  BinaryFunctor<ScalarLT , Many, Many>("many< many", result, left, right); break;
+    case BinaryOpCode::GT:  BinaryFunctor<ScalarGT , Many, Many>("many> many", result, left, right); break;
+    case BinaryOpCode::GEQ: BinaryFunctor<ScalarGEQ, Many, Many>("many>=many", result, left, right); break;
+    case BinaryOpCode::LEQ: BinaryFunctor<ScalarLEQ, Many, Many>("many<=many", result, left, right); break;
+    case BinaryOpCode::EQ:  BinaryFunctor<ScalarEQ , Many, Many>("many==many", result, left, right); break;
+    case BinaryOpCode::MUL: BinaryFunctor<ScalarMul, Many, Many>("many* many", result, left, right); break;
+    case BinaryOpCode::DIV: BinaryFunctor<ScalarDiv, Many, Many>("many/ many", result, left, right); break;
+    case BinaryOpCode::ADD: BinaryFunctor<ScalarAdd, Many, Many>("many+ many", result, left, right); break;
+    case BinaryOpCode::SUB: BinaryFunctor<ScalarSub, Many, Many>("many- many", result, left, right); break;
+    case BinaryOpCode::POW: BinaryFunctor<ScalarPow, Many, Many>("many^ many", result, left, right); break;
+  }
 }
 
 template <typename DT, typename ... VP>
