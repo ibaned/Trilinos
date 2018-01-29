@@ -163,6 +163,7 @@ struct ScalarNeg {
   }
 };
 
+// TODO: replace this with .access() after next Kokkos release
 template <typename Indexed, size_t IterationRank, size_t IndexedRank = Indexed::rank>
 struct Indexer;
 
@@ -180,6 +181,7 @@ struct Indexer<ViewType, 1, 1> {
   typename ViewType::reference_type index(ViewType const& x, Integral i) { return x(i); }
 };
 
+//TODO: just use std::max once C++14 is the Trilinos standard
 template <typename T, typename ... TS>
 struct MaxRank;
 
@@ -193,24 +195,6 @@ struct MaxRank {
   static constexpr size_t left_value = T::rank;
   static constexpr size_t right_value = MaxRank<TS ...>::value;
   static constexpr size_t value = left_value > right_value ? left_value : right_value;
-};
-
-template <typename A, typename B>
-struct CombineTwoExecSpaces;
-
-template <typename T>
-struct CombineTwoExecSpaces<T, Kokkos::AnonymousSpace> {
-  using type = T;
-};
-
-template <typename T>
-struct CombineTwoExecSpaces<Kokkos::AnonymousSpace, T> {
-  using type = T;
-};
-
-template <typename T>
-struct CombineTwoExecSpaces<T, T> {
-  using type = T;
 };
 
 template <typename Op, typename Result, typename Left, typename Right, size_t Rank = Result::rank>
