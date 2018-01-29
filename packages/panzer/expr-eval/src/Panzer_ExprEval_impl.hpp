@@ -181,16 +181,6 @@ struct Indexer<ViewType, 1, 1> {
 };
 
 template <typename T>
-struct ExtentsFor {
-  static size_t extent(T const&, size_t) { return 1; }
-};
-
-template <typename ST, typename ... VP>
-struct ExtentsFor<Kokkos::View<ST, VP...>> {
-  static size_t extent(Kokkos::View<ST, VP...> const& view, size_t i) { return view.extent(i); }
-};
-
-template <typename T>
 struct RankFor {
   static constexpr size_t value = 0;
 };
@@ -293,10 +283,7 @@ struct BinaryFunctor<Op, Result, Left, Right, 1> {
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
-    auto extent_0 =
-      std::max(
-          ExtentsFor<Left>::extent(left_, 0),
-          ExtentsFor<Right>::extent(right_, 0));
+    auto extent_0 = std::max(left_.extent(0), right_.extent(0));
     result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
     result = Result{result_};
@@ -327,11 +314,8 @@ struct TernaryFunctor<Cond, Left, Right, 1> {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
     auto extent_0 =
-      std::max(
-          ExtentsFor<Cond>::extent(cond_, 0),
-      std::max(
-          ExtentsFor<Left>::extent(left_, 0),
-          ExtentsFor<Right>::extent(right_, 0)));
+      std::max(cond_.extent(0),
+        std::max(left_.extent(0), right_.extent(0)));
     result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
     result = Result{result_};
