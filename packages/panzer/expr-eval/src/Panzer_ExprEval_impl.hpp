@@ -180,28 +180,18 @@ struct Indexer<ViewType, 1, 1> {
   typename ViewType::reference_type index(ViewType const& x, Integral i) { return x(i); }
 };
 
-template <typename T>
-struct RankFor {
-  static constexpr size_t value = 0;
-};
+template <typename T, typename ... TS>
+struct MaxRank;
 
-template <typename ST, typename ... VP>
-struct RankFor<Kokkos::View<ST, VP...>> {
-  static constexpr size_t value = Kokkos::View<ST, VP...>::rank;
+template <typename T>
+struct MaxRank<T> {
+  static constexpr size_t value = T::rank;
 };
 
 template <typename T, typename ... TS>
-struct RankForAll;
-
-template <typename T>
-struct RankForAll<T> {
-  static constexpr size_t value = RankFor<T>::value;
-};
-
-template <typename T, typename ... TS>
-struct RankForAll {
-  static constexpr size_t left_value = RankFor<T>::value;
-  static constexpr size_t right_value = RankForAll<TS ...>::value;
+struct MaxRank {
+  static constexpr size_t left_value = T::rank;
+  static constexpr size_t right_value = MaxRank<TS ...>::value;
   static constexpr size_t value = left_value > right_value ? left_value : right_value;
 };
 
@@ -290,7 +280,7 @@ struct BinaryFunctor<Op, Result, Left, Right, 1> {
   }
 };
 
-template <typename Cond, typename Left, typename Right, size_t Rank = RankForAll<Cond, Left, Right>::value>
+template <typename Cond, typename Left, typename Right, size_t Rank = MaxRank<Cond, Left, Right>::value>
 struct TernaryFunctor;
 
 template <typename Cond, typename Left, typename Right>
