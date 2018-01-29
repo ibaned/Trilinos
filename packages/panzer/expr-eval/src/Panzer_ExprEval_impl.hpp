@@ -181,7 +181,7 @@ struct Indexer<ViewType, 1, 1> {
   typename ViewType::reference_type index(ViewType const& x, Integral i) { return x(i); }
 };
 
-//TODO: just use std::max once C++14 is the Trilinos standard
+//TODO: just use std::max once C++14 is the Trilinos standard (which makes std::max constexpr)
 template <typename T, typename ... TS>
 struct MaxRank;
 
