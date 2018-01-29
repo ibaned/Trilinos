@@ -215,16 +215,6 @@ struct RankForAll {
   static constexpr size_t value = left_value > right_value ? left_value : right_value;
 };
 
-template <typename T>
-struct ExecSpaceFor {
-  using type = Kokkos::AnonymousSpace;
-};
-
-template <typename ST, typename ... VP>
-struct ExecSpaceFor<Kokkos::View<ST, VP...>> {
-  using type = typename Kokkos::View<ST, VP...>::execution_space;
-};
-
 template <typename A, typename B>
 struct CombineTwoExecSpaces;
 
@@ -241,59 +231,6 @@ struct CombineTwoExecSpaces<Kokkos::AnonymousSpace, T> {
 template <typename T>
 struct CombineTwoExecSpaces<T, T> {
   using type = T;
-};
-
-template <typename T, typename ... TS>
-struct ExecSpaceForAll;
-
-template <typename T>
-struct ExecSpaceForAll<T>;
-
-template <typename T, typename ... TS>
-struct ExecSpaceForAll {
-  using rest_type = typename ExecSpaceForAll<TS ...>::type;
-  using type =
-    typename CombineTwoExecSpaces<
-        typename ExecSpaceFor<T>::type, rest_type>::type;
-};
-
-template <typename T>
-struct ExecSpaceForAll<T> {
-  using type = typename ExecSpaceFor<T>::type;
-};
-
-template <typename Current, typename Default>
-struct SetDefaultExecSpace {
-  using type = Current;
-};
-
-template <typename Default>
-struct SetDefaultExecSpace<Kokkos::AnonymousSpace, Default> {
-  using type = Default;
-};
-
-template <typename T, size_t IterationRank, size_t TRank = T::Rank>
-struct Allocator;
-
-template <typename DT, typename ... VP>
-struct Allocator<Kokkos::View<DT, VP ...>, 0, 0> {
-  static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view) {
-    view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name)};
-  }
-};
-
-template <typename DT, typename ... VP>
-struct Allocator<Kokkos::View<DT, VP ...>, 1, 0> {
-  static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view, size_t n0) {
-    view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name)};
-  }
-};
-
-template <typename DT, typename ... VP>
-struct Allocator<Kokkos::View<DT, VP ...>, 1, 1> {
-  static void allocate(std::string const& name, Kokkos::View<DT, VP ...>& view, size_t n0) {
-    view = Kokkos::View<DT, VP ...>{Kokkos::ViewAllocateWithoutInitializing(name), n0};
-  }
 };
 
 template <typename Op, typename Result, typename Left, typename Right, size_t Rank = Result::rank>
@@ -315,38 +252,40 @@ struct TernaryResultType {
   static constexpr size_t c_rank = C::rank;
   using biggest_ab_type = typename std::conditional<(b_rank > a_rank), B, A>::type;
   using biggest_type = typename std::conditional<(c_rank > biggest_ab_type::rank), C, biggest_ab_type>::type;
-  using const_type = typename RebindViewType<biggest_type, typename A::const_value_type>::type;
-  using type = typename RebindViewType<biggest_type, typename A::non_const_value_type>::type;
+  using type = typename RebindViewType<biggest_type, typename A::const_value_type>::type;
+  using non_const_type = typename RebindViewType<biggest_type, typename A::non_const_value_type>::type;
 };
 
 template <typename Op, typename Result, typename Left, typename Right>
 struct BinaryFunctor<Op, Result, Left, Right, 0> {
   using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
+  using execution_space = typename Result::execution_space;
   NonConstResult result_;
   Left   left_;
   Right  right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type) const {
+    result_() = Op::apply(left_(), right_());
+  }
   BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
     left_ = Teuchos::any_cast<Left>(left);
     right_ = Teuchos::any_cast<Right>(right);
-    Allocator<NonConstResult, 0>::allocate(name, result_);
-    result_() = Op::apply(left_(), right_());
-    result = Result{result_};
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name));
+    Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, 1), *this);
+    result = Result(result_);
   }
 };
 
 template <typename Op, typename Result, typename Left, typename Right>
 struct BinaryFunctor<Op, Result, Left, Right, 1> {
   using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
-  using execution_space =
-    typename SetDefaultExecSpace<
-      typename ExecSpaceForAll<Left, Right>::type,
-      Kokkos::Serial>::type;
+  using execution_space = typename Result::execution_space;
   NonConstResult result_;
   Left   left_;
   Right  right_;
   KOKKOS_INLINE_FUNCTION
   void operator()(typename execution_space::size_type i) const {
-    Indexer<NonConstResult, 1>::index(result_, i) =
+    result_(i) =
       Op::apply(
           Indexer<Left, 1>::index(left_, i),
           Indexer<Right, 1>::index(right_, i));
@@ -358,7 +297,7 @@ struct BinaryFunctor<Op, Result, Left, Right, 1> {
       std::max(
           ExtentsFor<Left>::extent(left_, 0),
           ExtentsFor<Right>::extent(right_, 0));
-    Allocator<NonConstResult, 1>::allocate(name, result_, extent_0);
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
     result = Result{result_};
   }
@@ -369,19 +308,16 @@ struct TernaryFunctor;
 
 template <typename Cond, typename Left, typename Right>
 struct TernaryFunctor<Cond, Left, Right, 1> {
+  using NonConstResult = typename TernaryResultType<Cond, Left, Right>::non_const_type;
   using Result = typename TernaryResultType<Cond, Left, Right>::type;
-  using ConstResult = typename TernaryResultType<Cond, Left, Right>::const_type;
-  using execution_space =
-    typename SetDefaultExecSpace<
-      typename ExecSpaceForAll<Cond, Left, Right>::type,
-      Kokkos::Serial>::type;
-  Result result_;
+  using execution_space = typename Result::execution_space;
+  NonConstResult result_;
   Cond   cond_;
   Left   left_;
   Right  right_;
   KOKKOS_INLINE_FUNCTION
   void operator()(typename execution_space::size_type i) const {
-    Indexer<Result, 1>::index(result_, i) =
+    result_(i) =
           Indexer<Cond, 1>::index(cond_, i) ?
           Indexer<Left, 1>::index(left_, i) :
           Indexer<Right, 1>::index(right_, i);
@@ -396,9 +332,9 @@ struct TernaryFunctor<Cond, Left, Right, 1> {
       std::max(
           ExtentsFor<Left>::extent(left_, 0),
           ExtentsFor<Right>::extent(right_, 0)));
-    Allocator<Result, 1>::allocate(name, result_, extent_0);
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
-    result = ConstResult{result_};
+    result = Result{result_};
   }
 };
 
@@ -579,12 +515,54 @@ void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any& resu
   }
 }
 
+template <typename Result, size_t Rank = Result::rank>
+struct NegFunctor;
+
+template <typename Result>
+struct NegFunctor<Result, 0> {
+  using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
+  using execution_space = typename Result::execution_space;
+  NonConstResult result_;
+  Result right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type i) const {
+    result_() = - right_();
+  }
+  NegFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
+    right_ = Teuchos::any_cast<Result>(right);
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name));
+    Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, 1), *this);
+    result = Result(result_);
+  }
+};
+
+template <typename Result>
+struct NegFunctor<Result, 1> {
+  using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
+  using execution_space = typename Result::execution_space;
+  NonConstResult result_;
+  Result right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type i) const {
+    result_(i) = - right_(i);
+  }
+  NegFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
+    right_ = Teuchos::any_cast<Result>(right);
+    auto extent_0 = right_.extent(0);
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
+    Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
+    result = Result(result_);
+  }
+};
+
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::many_neg_op(Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::many_neg_op(Teuchos::any& result, Teuchos::any& right) {
+  NegFunctor<const_view_type>("-many", result, right);
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::single_neg_op(Teuchos::any&, Teuchos::any&) {
+void Eval<DT, VP ...>::single_neg_op(Teuchos::any& result, Teuchos::any& right) {
+  NegFunctor<const_single_view_type>("-single", result, right);
 }
 
 }} // end namespace panzer::Expr
