@@ -46,27 +46,6 @@
 
 #include <Teuchos_MathExpr.hpp>
 
-namespace Teuchos
-{
-
-/* get around really really really bad Teuchos::any design */
-
-std::ostream& operator<<(std::ostream& s, std::vector<Teuchos::any> const&) {
-  return s;
-}
-
-template <typename DT, typename ... VP>
-std::ostream& operator<<(std::ostream& s, Kokkos::View<DT, VP ...> const&) {
-  return s;
-}
-
-template <typename DT, typename ... VP>
-bool operator==(panzer::Expr::EvalBase::Function const& a, panzer::Expr::EvalBase::Function const& b) {
-  return false;
-}
-
-}
-
 namespace panzer
 {
 namespace Expr
