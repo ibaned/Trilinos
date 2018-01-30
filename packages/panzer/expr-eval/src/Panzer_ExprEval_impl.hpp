@@ -654,7 +654,8 @@ struct UnaryFunction {
 template <typename DT, typename ... VP>
 void set_cmath_functions(Eval<DT, VP ...>& eval) {
   using eval_type = Eval<DT, VP ...>;
-  eval.set("abs", UnaryFunction<ScalarAbs, eval_type>{});
+  EvalBase& eval_base = eval;
+  eval_base.set("abs", EvalBase::Function(UnaryFunction<ScalarAbs, eval_type>{}));
 }
 
 }} // end namespace panzer::Expr

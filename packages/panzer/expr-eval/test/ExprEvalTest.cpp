@@ -49,6 +49,7 @@ namespace panzer {
 TEUCHOS_UNIT_TEST(ExprEval, test_1d_system)
 {
   Expr::Eval<double*> eval;
+  Expr::set_cmath_functions(eval);
   Teuchos::any result;
   eval.read_string(result, "1+1", "one plus one");
   Kokkos::View<double const> x = Teuchos::any_cast<Kokkos::View<double const>>(result);
@@ -67,6 +68,11 @@ TEUCHOS_UNIT_TEST(ExprEval, test_1d_system)
   Kokkos::deep_copy(h_x, x);
   TEUCHOS_ASSERT(h_x() == 9.0);
   eval.read_string(result, "a-b", "a minus b");
+  x = Teuchos::any_cast<Kokkos::View<double const>>(result);
+  h_x = Kokkos::create_mirror_view(x);
+  Kokkos::deep_copy(h_x, x);
+  TEUCHOS_ASSERT(h_x() == 1.0);
+  eval.read_string(result, "abs(b-a)", "abs(b-a)");
   x = Teuchos::any_cast<Kokkos::View<double const>>(result);
   h_x = Kokkos::create_mirror_view(x);
   Kokkos::deep_copy(h_x, x);
@@ -123,6 +129,13 @@ TEUCHOS_UNIT_TEST(ExprEval, test_1d_system)
   TEUCHOS_ASSERT(h_z(0) == -6.0);
   TEUCHOS_ASSERT(h_z(1) == -7.0);
   TEUCHOS_ASSERT(h_z(2) == -8.0);
+  eval.read_string(result, "abs(y - a)", "abs(y - a)");
+  z = Teuchos::any_cast<Kokkos::View<double const*>>(result);
+  h_z = Kokkos::create_mirror_view(z);
+  Kokkos::deep_copy(h_z, z);
+  TEUCHOS_ASSERT(h_z(0) == 4.0);
+  TEUCHOS_ASSERT(h_z(1) == 3.0);
+  TEUCHOS_ASSERT(h_z(2) == 2.0);
 }
 
 TEUCHOS_UNIT_TEST(ExprEval, test_2d_system)
