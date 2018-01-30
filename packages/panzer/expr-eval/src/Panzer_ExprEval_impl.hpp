@@ -634,6 +634,60 @@ struct ScalarAbs {
   }
 };
 
+struct ScalarExp {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::exp;
+    return exp(right);
+  }
+};
+
+struct ScalarLog {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::log;
+    return log(right);
+  }
+};
+
+struct ScalarSqrt {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::sqrt;
+    return sqrt(right);
+  }
+};
+
+struct ScalarSin {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::sin;
+    return sin(right);
+  }
+};
+
+struct ScalarCos {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::cos;
+    return cos(right);
+  }
+};
+
+struct ScalarTan {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::tan;
+    return tan(right);
+  }
+};
+
 template <typename Op, typename EvalType>
 struct UnaryFunction {
   void operator()(std::string const& name, Teuchos::any& result, std::vector<Teuchos::any>& rhs) const {
@@ -656,6 +710,12 @@ void set_cmath_functions(Eval<DT, VP ...>& eval) {
   using eval_type = Eval<DT, VP ...>;
   EvalBase& eval_base = eval;
   eval_base.set("abs", EvalBase::Function(UnaryFunction<ScalarAbs, eval_type>{}));
+  eval_base.set("exp", EvalBase::Function(UnaryFunction<ScalarExp, eval_type>{}));
+  eval_base.set("log", EvalBase::Function(UnaryFunction<ScalarLog, eval_type>{}));
+  eval_base.set("sqrt", EvalBase::Function(UnaryFunction<ScalarSqrt, eval_type>{}));
+  eval_base.set("sin", EvalBase::Function(UnaryFunction<ScalarSin, eval_type>{}));
+  eval_base.set("cos", EvalBase::Function(UnaryFunction<ScalarCos, eval_type>{}));
+  eval_base.set("tan", EvalBase::Function(UnaryFunction<ScalarTan, eval_type>{}));
 }
 
 }} // end namespace panzer::Expr
