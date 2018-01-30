@@ -181,6 +181,27 @@ struct Indexer<ViewType, 1, 1> {
   typename ViewType::reference_type index(ViewType const& x, Integral i) { return x(i); }
 };
 
+template <typename ViewType>
+struct Indexer<ViewType, 2, 0> {
+  template <typename Integral>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  typename ViewType::reference_type index(ViewType const& x, Integral, Integral) { return x(); }
+};
+
+template <typename ViewType>
+struct Indexer<ViewType, 2, 1> {
+  template <typename Integral>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  typename ViewType::reference_type index(ViewType const& x, Integral i, Integral) { return x(i); }
+};
+
+template <typename ViewType>
+struct Indexer<ViewType, 2, 2> {
+  template <typename Integral>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  typename ViewType::reference_type index(ViewType const& x, Integral i, Integral j) { return x(i, j); }
+};
+
 //TODO: just use std::max once C++14 is the Trilinos standard (which makes std::max constexpr)
 template <typename T, typename ... TS>
 struct MaxRank;
@@ -196,9 +217,6 @@ struct MaxRank {
   static constexpr size_t right_value = MaxRank<TS ...>::value;
   static constexpr size_t value = left_value > right_value ? left_value : right_value;
 };
-
-template <typename Op, typename Result, typename Left, typename Right, size_t Rank = Result::rank>
-struct BinaryFunctor;
 
 template <typename A, typename B>
 struct ResultType {
@@ -219,6 +237,9 @@ struct TernaryResultType {
   using type = typename RebindViewType<biggest_type, typename A::const_value_type>::type;
   using non_const_type = typename RebindViewType<biggest_type, typename A::non_const_value_type>::type;
 };
+
+template <typename Op, typename Result, typename Left, typename Right, size_t Rank = Result::rank>
+struct BinaryFunctor;
 
 template <typename Op, typename Result, typename Left, typename Right>
 struct BinaryFunctor<Op, Result, Left, Right, 0> {
@@ -260,6 +281,32 @@ struct BinaryFunctor<Op, Result, Left, Right, 1> {
     auto extent_0 = std::max(left_.extent(0), right_.extent(0));
     result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
+    result = Result{result_};
+  }
+};
+
+template <typename Op, typename Result, typename Left, typename Right>
+struct BinaryFunctor<Op, Result, Left, Right, 2> {
+  using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
+  using execution_space = typename Result::execution_space;
+  NonConstResult result_;
+  Left   left_;
+  Right  right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type i, typename execution_space::size_type j) const {
+    result_(i, j) =
+      Op::apply(
+          Indexer<Left, 2>::index(left_, i, j),
+          Indexer<Right, 2>::index(right_, i, j));
+  }
+  BinaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right) {
+    left_ = Teuchos::any_cast<Left>(left);
+    right_ = Teuchos::any_cast<Right>(right);
+    auto extent_0 = std::max(left_.extent(0), right_.extent(0));
+    auto extent_1 = std::max(left_.extent(1), right_.extent(1));
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0, extent_1);
+    using policy_type = Kokkos::MDRangePolicy<execution_space, Kokkos::Rank<2>>;
+    Kokkos::parallel_for(name, policy_type({0, 0}, {extent_0, extent_1}), *this);
     result = Result{result_};
   }
 };
