@@ -168,8 +168,6 @@ class Eval : public EvalBase {
   void single_neg_op(Teuchos::any& result, Teuchos::any& right) override;
 };
 
-extern template class Eval<double*>;
-
 }} // end namespace panzer::Expr
 
 #endif // PANZER_EXPR_EVAL_HPP

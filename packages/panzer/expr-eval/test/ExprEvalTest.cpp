@@ -42,7 +42,7 @@
 
 #include <Teuchos_UnitTestHarness.hpp>
 
-#include "Panzer_ExprEval.hpp"
+#include "Panzer_ExprEval_impl.hpp"
 
 namespace panzer {
 

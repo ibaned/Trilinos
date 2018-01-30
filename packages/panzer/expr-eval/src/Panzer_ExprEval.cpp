@@ -298,6 +298,4 @@ void EvalBase::neg_op(Teuchos::any& result, Teuchos::any& right) {
   }
 }
 
-template class Eval<double*>;
-
 }} // end namespace panzer::Expr
