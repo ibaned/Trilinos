@@ -343,6 +343,39 @@ struct TernaryFunctor<Cond, Left, Right, 1> {
   }
 };
 
+template <typename Cond, typename Left, typename Right>
+struct TernaryFunctor<Cond, Left, Right, 2> {
+  using NonConstResult = typename TernaryResultType<Cond, Left, Right>::non_const_type;
+  using Result = typename TernaryResultType<Cond, Left, Right>::type;
+  using execution_space = typename Result::execution_space;
+  NonConstResult result_;
+  Cond   cond_;
+  Left   left_;
+  Right  right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type i, typename execution_space::size_type j) const {
+    result_(i, j) =
+          Indexer<Cond, 2>::index(cond_, i, j) ?
+          Indexer<Left, 2>::index(left_, i, j) :
+          Indexer<Right, 2>::index(right_, i, j);
+  }
+  TernaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) {
+    cond_ = Teuchos::any_cast<Cond>(cond);
+    left_ = Teuchos::any_cast<Left>(left);
+    right_ = Teuchos::any_cast<Right>(right);
+    auto extent_0 =
+      std::max(cond_.extent(0),
+        std::max(left_.extent(0), right_.extent(0)));
+    auto extent_1 =
+      std::max(cond_.extent(1),
+        std::max(left_.extent(1), right_.extent(1)));
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0, extent_1);
+    using policy_type = Kokkos::MDRangePolicy<execution_space, Kokkos::Rank<2>>;
+    Kokkos::parallel_for(name, policy_type({0, 0}, {extent_0, extent_1}), *this);
+    result = Result{result_};
+  }
+};
+
 template <typename DT, typename ... VP>
 Eval<DT, VP ...>::Eval()
   : EvalBase() 
@@ -556,6 +589,27 @@ struct UnaryFunctor<Op, Result, 1> {
     auto extent_0 = right_.extent(0);
     result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, extent_0), *this);
+    result = Result(result_);
+  }
+};
+
+template <typename Op, typename Result>
+struct UnaryFunctor<Op, Result, 2> {
+  using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
+  using execution_space = typename Result::execution_space;
+  NonConstResult result_;
+  Result right_;
+  KOKKOS_INLINE_FUNCTION
+  void operator()(typename execution_space::size_type i, typename execution_space::size_type j) const {
+    result_(i, j) = Op::apply(right_(i, j));
+  }
+  UnaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
+    right_ = Teuchos::any_cast<Result>(right);
+    auto extent_0 = right_.extent(0);
+    auto extent_1 = right_.extent(1);
+    result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0, extent_1);
+    using policy_type = Kokkos::MDRangePolicy<execution_space, Kokkos::Rank<2>>;
+    Kokkos::parallel_for(name, policy_type({0, 0}, {extent_0, extent_1}), *this);
     result = Result(result_);
   }
 };
