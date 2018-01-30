@@ -473,20 +473,20 @@ void Eval<DT, VP ...>::many_many_binary_op(BinaryOpCode code, Teuchos::any& resu
   }
 }
 
-template <typename Result, size_t Rank = Result::rank>
-struct NegFunctor;
+template <typename Op, typename Result, size_t Rank = Result::rank>
+struct UnaryFunctor;
 
-template <typename Result>
-struct NegFunctor<Result, 0> {
+template <typename Op, typename Result>
+struct UnaryFunctor<Op, Result, 0> {
   using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
   using execution_space = typename Result::execution_space;
   NonConstResult result_;
   Result right_;
   KOKKOS_INLINE_FUNCTION
   void operator()(typename execution_space::size_type i) const {
-    result_() = - right_();
+    result_() = Op::apply(right_());
   }
-  NegFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
+  UnaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
     right_ = Teuchos::any_cast<Result>(right);
     result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name));
     Kokkos::parallel_for(name, Kokkos::RangePolicy<execution_space>(0, 1), *this);
@@ -494,17 +494,17 @@ struct NegFunctor<Result, 0> {
   }
 };
 
-template <typename Result>
-struct NegFunctor<Result, 1> {
+template <typename Op, typename Result>
+struct UnaryFunctor<Op, Result, 1> {
   using NonConstResult = typename RebindViewType<Result, typename Result::non_const_value_type>::type;
   using execution_space = typename Result::execution_space;
   NonConstResult result_;
   Result right_;
   KOKKOS_INLINE_FUNCTION
   void operator()(typename execution_space::size_type i) const {
-    result_(i) = - right_(i);
+    result_(i) = Op::apply(right_(i));
   }
-  NegFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
+  UnaryFunctor(std::string const& name, Teuchos::any& result, Teuchos::any& right) {
     right_ = Teuchos::any_cast<Result>(right);
     auto extent_0 = right_.extent(0);
     result_ = NonConstResult(Kokkos::ViewAllocateWithoutInitializing(name), extent_0);
@@ -515,12 +515,12 @@ struct NegFunctor<Result, 1> {
 
 template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::many_neg_op(Teuchos::any& result, Teuchos::any& right) {
-  NegFunctor<const_view_type>("-many", result, right);
+  UnaryFunctor<ScalarNeg, const_view_type>("-many", result, right);
 }
 
 template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::single_neg_op(Teuchos::any& result, Teuchos::any& right) {
-  NegFunctor<const_single_view_type>("-single", result, right);
+  UnaryFunctor<ScalarNeg, const_single_view_type>("-single", result, right);
 }
 
 }} // end namespace panzer::Expr
