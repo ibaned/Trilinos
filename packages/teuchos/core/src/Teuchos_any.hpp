@@ -84,26 +84,51 @@
 
 namespace Teuchos {
 
+/*! \brief class that tests whether (a == b) can be done where (a) and (b) are of type T. */
 template<class T>
 struct is_comparable
 {
-    template<class X>
-    static auto test(int) -> decltype(std::declval<X>() == std::declval<X>(),
-                                      void(), std::true_type());
-    template<class X>
-    static auto test(...) -> std::false_type;
-    using type = decltype(test<T>(0));
+  /*! \brief This function will exist for (X=T) if and only if (a == b) is valid for (a) and (b) of type T.
+      \details std::declval<X>() "creates" a value of type X without having to worry about the existence
+               of constructors. It only works within expressions that will not be evaluated (e.g. decltype()).
+               The full expression is (std::declval<X>() == std::declval<X>(), void(), std::true_type()),
+               using the comma operator twice.
+               Its value is the value of the last sub-expression, which is (std::true_type()).
+               Hence, the return value of this overload of test() is std::true_type, if the compiler
+               is able to generate it.
+               The compiler is only able to generate it if (std::declval<X>() == std::declval<X>()) is a
+               valid expression, meanin type X has a comparison operator that accepts it.
+               If the compiler can't generate this overload, thanks to Substitution Failure Is Not An Error
+               (SFINAE), it will silently generate the other overload instead.
+   */
+  template<class X>
+  static auto test(int) -> decltype(std::declval<X>() == std::declval<X>(),
+                                    void(), std::true_type());
+  /*! \brief This function will be generated for X=T if and only if the type T cannot be compared.
+      \details This function "fits less well" in the expression (test<T>(0)), because it accepts
+      any arguments as opposed to specifically an integer (which is being passed in), so it will
+      be the second overload that the compiler will try to generate.
+      It will only do so if the first overload, which returns std::true_type, fails to generate
+      due to T not being comparable.
+      In that case, this overload is generated instead, which returns std::false_type */
+  template<class X>
+  static auto test(...) -> std::false_type;
+
+  /*! \brief Will be std::true_type or std::false_type depending on whether T is comparable */
+  using type = decltype(test<T>(0));
 };
 
+/*! \brief class that tests whether (s << a) is a valid expression where s is type std::ostream& and a is type T.
+    \details Please see Teuchos::is_comparable for a thorough description of the SFINAE techniques used here */
 template<class T>
 struct is_printable
 {
-    template<class X>
-    static auto test(int) -> decltype(std::declval<std::ostream&>() << std::declval<X>(),
-                                      void(), std::true_type());
-    template<class X>
-    static auto test(...) -> std::false_type;
-    using type = decltype(test<T>(0));
+  template<class X>
+  static auto test(int) -> decltype(std::declval<std::ostream&>() << std::declval<X>(),
+                                    void(), std::true_type());
+  template<class X>
+  static auto test(...) -> std::false_type;
+  using type = decltype(test<T>(0));
 };
 
 template <class T, class ok = typename is_comparable<T>::type>
