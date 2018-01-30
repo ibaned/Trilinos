@@ -74,7 +74,7 @@ enum class BinaryOpCode {
 class EvalBase : public Teuchos::Reader {
  public:
   EvalBase();
-  using Function = std::function<void(Teuchos::any&, std::vector<Teuchos::any>& rhs)>;
+  using Function = std::function<void(std::string const& name, Teuchos::any&, std::vector<Teuchos::any>& rhs)>;
   void set(std::string const& name, Function const& value);
   template <typename T>
   T const& get(std::string const& name) const {
@@ -91,7 +91,7 @@ class EvalBase : public Teuchos::Reader {
   void ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right);
   void binary_op(BinaryOpCode code, Teuchos::any& result, Teuchos::any& left, Teuchos::any& right);
   void neg_op(Teuchos::any& result, Teuchos::any& right);
-  virtual void make_constant(Teuchos::any& result, double value) = 0;
+  virtual void make_constant(Teuchos::any& result, double const& value) = 0;
   virtual void inspect_arg(Teuchos::any const& arg, bool& is_many, bool& is_bool) = 0;
   virtual void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
   virtual void single_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) = 0;
@@ -154,7 +154,7 @@ class Eval : public EvalBase {
   void set(std::string const& name, scalar_type const& value);
   void set(std::string const& name, const_view_type const& value);
  protected:
-  void make_constant(Teuchos::any& result, double value) override;
+  void make_constant(Teuchos::any& result, double const& value) override;
   void inspect_arg(Teuchos::any const& arg, bool& is_many, bool& is_bool) override;
   void single_single_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
   void single_many_ternary_op(Teuchos::any& result, Teuchos::any& cond, Teuchos::any& left, Teuchos::any& right) override;
@@ -167,6 +167,9 @@ class Eval : public EvalBase {
   void many_neg_op(Teuchos::any& result, Teuchos::any& right) override;
   void single_neg_op(Teuchos::any& result, Teuchos::any& right) override;
 };
+
+template <typename DT, typename ... VP>
+void set_cmath_functions(Eval<DT, VP ...>& eval);
 
 }} // end namespace panzer::Expr
 

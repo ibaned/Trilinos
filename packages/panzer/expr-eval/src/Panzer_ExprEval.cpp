@@ -152,7 +152,7 @@ void EvalBase::at_reduce(Teuchos::any& result, int prod, std::vector<Teuchos::an
           "symbol \"" << name << "\" being called doesn't exist!");
       Function& func = Teuchos::any_ref_cast<Function>(it->second);
       std::vector<Teuchos::any>& args = Teuchos::any_ref_cast<std::vector<Teuchos::any>>(rhs.at(4));
-      func(result, args);
+      func(name, result, args);
       break;
     }
     case Teuchos::MathExpr::PROD_NO_ARGS: {

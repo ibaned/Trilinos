@@ -46,6 +46,7 @@
 #include <Panzer_ExprEval.hpp>
 
 #include <algorithm>
+#include <cmath>
 
 namespace panzer
 {
@@ -408,7 +409,7 @@ void Eval<DT, VP ...>::set(std::string const& name, const_view_type const& value
 }
 
 template <typename DT, typename ... VP>
-void Eval<DT, VP ...>::make_constant(Teuchos::any& result, double value) {
+void Eval<DT, VP ...>::make_constant(Teuchos::any& result, double const& value) {
   single_view_type view{Kokkos::ViewAllocateWithoutInitializing{"constant"}};
   auto host_view = Kokkos::create_mirror_view(view);
   host_view() = value;
@@ -622,6 +623,38 @@ void Eval<DT, VP ...>::many_neg_op(Teuchos::any& result, Teuchos::any& right) {
 template <typename DT, typename ... VP>
 void Eval<DT, VP ...>::single_neg_op(Teuchos::any& result, Teuchos::any& right) {
   UnaryFunctor<ScalarNeg, const_single_view_type>("-single", result, right);
+}
+
+struct ScalarAbs {
+  template <typename T>
+  static KOKKOS_FORCEINLINE_FUNCTION
+  T apply(T const& right) {
+    using std::abs;
+    return abs(right);
+  }
+};
+
+template <typename Op, typename EvalType>
+struct UnaryFunction {
+  void operator()(std::string const& name, Teuchos::any& result, std::vector<Teuchos::any>& rhs) const {
+    auto& right = rhs.at(0);
+    using single_type = typename EvalType::const_single_view_type;
+    using many_type = typename EvalType::const_view_type;
+    if (right.type() == typeid(single_type)) {
+      UnaryFunctor<Op, single_type>(name, result, right);
+    } else if (right.type() == typeid(many_type)) {
+      UnaryFunctor<Op, many_type>(name, result, right);
+    } else {
+      TEUCHOS_TEST_FOR_EXCEPTION(true, Teuchos::ParserFail,
+          "Unexpected type " << right.typeName() << " passed to UnaryFunction \"" << name << "\"\n");
+    }
+  }
+};
+
+template <typename DT, typename ... VP>
+void set_cmath_functions(Eval<DT, VP ...>& eval) {
+  using eval_type = Eval<DT, VP ...>;
+  eval.set("abs", UnaryFunction<ScalarAbs, eval_type>{});
 }
 
 }} // end namespace panzer::Expr
